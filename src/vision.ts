@@ -1,25 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from "fs";
 
-export async function* askAI(question: string): AsyncGenerator<string, void, unknown> {
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    throw new Error("GOOGLE_API_KEY is not set");
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
-
-  const result = await model.generateContentStream([
-    question
-  ]);
-
-  for await (const chunk of result.stream) {
-    yield chunk.text();
-  }
-}
-
-export async function* analyzeScreenshot(imagePath: string, question?: string): AsyncGenerator<string, void, unknown> {
+export async function analyzeScreenshot(imagePath: string, question?: string): Promise<void> {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_API_KEY is not set");
@@ -56,19 +38,7 @@ For educational content:
 * Explain concepts clearly.
 * Guide the user toward understanding instead of only giving answers.
 
-Response format:
-
-## Understanding
-
-Brief explanation of the current context.
-
-## Analysis
-
-Important observations from the screen.
-
-## Recommendation
-
-The most useful next action for the user.
+DO NOT USE MARKDOWN FOR GENERATION ALWAYS GIVE RAW TEXT 
 
 ${question ? `User Question: ${question}` : "No specific question provided. Analyze the screen and provide context and recommendations."}`;
 
@@ -83,6 +53,7 @@ ${question ? `User Question: ${question}` : "No specific question provided. Anal
   ]);
 
   for await (const chunk of result.stream) {
-    yield chunk.text();
+    process.stdout.write(chunk.text());
   }
+  console.log(); // Add a newline at the end
 }

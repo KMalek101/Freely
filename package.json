@@ -10,7 +10,7 @@
     "dev": "tsx src/index.ts"
   },
   "bin": {
-    "freely": "./src/index.js"
+    "freely": "./dist/index.js"
   },
   "keywords": [],
   "author": "",
@@ -23,7 +23,8 @@
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "marked": "^15.0.12",
-    "marked-terminal": "^7.3.0"
+    "marked-terminal": "^7.3.0",
+    "node-global-key-listener": "^0.3.0"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",
