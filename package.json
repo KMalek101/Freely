@@ -19,6 +19,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "chalk": "^5.6.2",
+    "cli-markdown": "^3.5.1",
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "marked": "^15.0.12",
