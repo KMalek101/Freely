@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from "fs";
 
-export async function analyzeScreenshot(imagePath: string, question?: string): Promise<void> {
+export async function* analyzeScreenshot(imagePath: string, question?: string): AsyncGenerator<string, void, unknown> {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_API_KEY is not set");
@@ -65,7 +65,6 @@ ${question ? `User Question: ${question}` : "No specific question provided. Anal
   ]);
 
   for await (const chunk of result.stream) {
-    process.stdout.write(chunk.text());
+    yield chunk.text();
   }
-  console.log(); // Add a newline at the end
 }
