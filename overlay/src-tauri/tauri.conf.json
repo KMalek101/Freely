@@ -13,9 +13,14 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "freely",
-        "width": 800,
-        "height": 600
+        "width": 300,
+        "height": 200,
+        "decorations": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": true
       }
     ],
     "security": {
