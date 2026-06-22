@@ -18,6 +18,7 @@
   "type": "module",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@tauri-apps/cli": "^2.11.3",
     "chalk": "^5.6.2",
     "cli-markdown": "^3.5.1",
     "commander": "^15.0.0",
