@@ -6,12 +6,15 @@ import { takeScreenshot } from "../screenshot.js";
 import { analyzeScreenshot } from "../ai.js";
 import { ui } from "../../ui/renderer.js";
 
+import { startSseServer, eventBus } from "./sseServer.js";
+
 const SOCKET_PATH =
   process.platform === "win32"
     ? "\\\\.\\pipe\\freely"
     : path.join(os.tmpdir(), "freely.sock");
 
 export async function startDaemon() {
+  startSseServer();
   if (fs.existsSync(SOCKET_PATH)) {
     fs.unlinkSync(SOCKET_PATH);
   }
@@ -24,6 +27,9 @@ export async function startDaemon() {
 
         const actions: Record<string, (args: string[]) => Promise<void>> = {
           screenshot: handleScreenshotTrigger,
+          "emit-test": async () => {
+            eventBus.emit("message", { type: "message", content: "Hello from CLI" });
+          },
         };
 
         if (message.action && actions[message.action]) {

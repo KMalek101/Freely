@@ -41,6 +41,23 @@ program.command("ask").action(() => {
   console.log("Hello from Freely");
 });
 
+program.command("test-sse").action(async () => {
+  const net = await import("net");
+  const os = await import("os");
+  const path = await import("path");
+  
+  const SOCKET_PATH = process.platform === "win32" 
+    ? "\\\\.\\pipe\\freely" 
+    : path.join(os.tmpdir(), "freely.sock");
+
+  const client = net.createConnection(SOCKET_PATH);
+  client.on("connect", () => {
+    client.write(JSON.stringify({ action: "emit-test" }));
+    client.end();
+    process.exit(0);
+  });
+});
+
 program.command("screenshot [question]").action(async (question?: string) => {
   try {
     ui.showStatus("capturing");
