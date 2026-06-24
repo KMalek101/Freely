@@ -37,11 +37,7 @@ program.command("trigger <action> [args...]").action(async (action: string, args
   });
 });
 
-program.command("ask").action(() => {
-  console.log("Hello from Freely");
-});
-
-program.command("test-sse").action(async () => {
+program.command("ask <question...>").action(async (question: string[]) => {
   const net = await import("net");
   const os = await import("os");
   const path = await import("path");
@@ -52,28 +48,27 @@ program.command("test-sse").action(async () => {
 
   const client = net.createConnection(SOCKET_PATH);
   client.on("connect", () => {
-    client.write(JSON.stringify({ action: "emit-test" }));
+    client.write(JSON.stringify({ action: "ask", args: question }));
     client.end();
     process.exit(0);
   });
 });
 
 program.command("screenshot [question]").action(async (question?: string) => {
-  try {
-    ui.showStatus("capturing");
-    const path = await takeScreenshot();
+  const net = await import("net");
+  const os = await import("os");
+  const path = await import("path");
+  
+  const SOCKET_PATH = process.platform === "win32" 
+    ? "\\\\.\\pipe\\freely" 
+    : path.join(os.tmpdir(), "freely.sock");
 
-    ui.showStatus("analyzing");
-    let fullResponse = "";
-    for await (const chunk of analyzeScreenshot(path, question)) {
-      fullResponse += chunk;
-    }
-
-    ui.showStatus("complete");
-    ui.renderResponse(fullResponse);
-  } catch (e) {
-    ui.showStatus("failed", e instanceof Error ? e.message : String(e));
-  }
+  const client = net.createConnection(SOCKET_PATH);
+  client.on("connect", () => {
+    client.write(JSON.stringify({ action: "screenshot", args: question ? [question] : [] }));
+    client.end();
+    process.exit(0);
+  });
 });
 
 if (process.argv.length === 2) {

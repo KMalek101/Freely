@@ -8,6 +8,8 @@
     "start": "ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test-sse": "tsx src/index.ts test-sse",
+    "ask": "tsx src/index.ts ask",
+    "screenshot": "tsx src/index.ts screenshot",
     "daemon": "tsx src/index.ts daemon",
     "dev": "tsx src/index.ts"
   },

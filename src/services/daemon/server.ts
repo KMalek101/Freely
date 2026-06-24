@@ -7,6 +7,7 @@ import { analyzeScreenshot } from "../ai.js";
 import { ui } from "../../ui/renderer.js";
 
 import { startSseServer, eventBus } from "./sseServer.js";
+import { askAI } from "../ai.js";
 
 const SOCKET_PATH =
   process.platform === "win32"
@@ -29,6 +30,12 @@ export async function startDaemon() {
           screenshot: handleScreenshotTrigger,
           "emit-test": async () => {
             eventBus.emit("message", { type: "message", content: "Hello from CLI" });
+          },
+          ask: async (args: string[]) => {
+            const question = args.join(" ");
+            for await (const chunk of askAI(question)) {
+              eventBus.emit("message", { type: "ai-chunk", content: chunk });
+            }
           },
         };
 
@@ -62,20 +69,14 @@ export async function startDaemon() {
 }
 
 async function handleScreenshotTrigger(args: string[]) {
-  // This is currently hardcoded but the server structure is generic
   try {
-    ui.showStatus("capturing");
     const path = await takeScreenshot();
 
-    ui.showStatus("analyzing");
-    let fullResponse = "";
-    for await (const chunk of analyzeScreenshot(path, args[0])) {
-      fullResponse += chunk;
+    const question = args[0] || "";
+    for await (const chunk of analyzeScreenshot(path, question)) {
+      eventBus.emit("message", { type: "ai-chunk", content: chunk });
     }
-
-    ui.showStatus("complete");
-    ui.renderResponse(fullResponse);
   } catch (e) {
-    ui.showStatus("failed", e instanceof Error ? e.message : String(e));
+    eventBus.emit("message", { type: "error", content: e instanceof Error ? e.message : String(e) });
   }
 }
