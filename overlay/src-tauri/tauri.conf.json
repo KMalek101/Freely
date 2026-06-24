@@ -11,18 +11,19 @@
   },
   "app": {
     "withGlobalTauri": true,
-    "windows": [
-      {
-        "label": "main",
-        "title": "freely",
-        "width": 300,
-        "height": 200,
-        "decorations": true,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "resizable": true
-      }
-    ],
+      "windows": [
+        {
+          "fullscreen": false,
+          "height": 120,
+          "resizable": false,
+          "title": "Freely",
+          "width": 280,
+          "transparent": true,
+          "decorations": false,
+          "alwaysOnTop": true
+        }
+      ],
+
     "security": {
       "csp": null
     }

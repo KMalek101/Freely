@@ -2,17 +2,57 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Freely</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
+  <body class="bg-transparent overflow-hidden">
+    <div style="
+      width: 100vw; height: 100vh;
+      background: rgba(30, 30, 32, 0.92);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 18px 20px 16px;
+      color: #fff;
+      display: flex; flex-direction: column;
+    ">
+      <!-- Header (Draggable) -->
+      <header data-tauri-drag-region style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; cursor: grab;">
+        <div data-tauri-drag-region style="display:flex; align-items:center; gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path d="M9 1L10.5 7.5L17 9L10.5 10.5L9 17L7.5 10.5L1 9L7.5 7.5L9 1Z" fill="white"/>
+          </svg>
+          <span style="font-size:15px; font-weight:500;">freely</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <button id="minBtn" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:18px;padding:0;line-height:1;">—</button>
+          <button id="closeBtn" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:16px;padding:0;line-height:1;">✕</button>
+        </div>
+      </header>
 
-<body>
-  <div id="app">
-    <h1>SSE Receiver</h1>
-    <div id="messages"></div>
-  </div>
-  <script type="module" src="/src/main.ts"></script>
-</body>
+      <div style="height:1px; background:rgba(255,255,255,0.08); margin-bottom:14px;"></div>
 
+      <!-- Loader -->
+      <div id="loader" style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+        <div class="spinner"></div>
+        <span style="font-size:14px; color:rgba(255,255,255,0.4); letter-spacing: 0.02em;">Analyzing screenshot...</span>
+      </div>
+
+      <!-- Messages (Scrollable) -->
+      <div id="messages" style="flex-grow: 1; overflow-y: auto; font-size:14.5px; line-height:1.65; color:rgba(255,255,255,0.88);"></div>
+
+      <div style="height:1px; background:rgba(255,255,255,0.08); margin:16px 0 12px;"></div>
+
+      <!-- Footer -->
+      <footer style="display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div style="width:7px;height:7px;border-radius:50%;background:#34d399;"></div>
+          <span style="font-size:11px; color:rgba(255,255,255,0.4);">Gemini Flash</span>
+        </div>
+        <span style="font-size:16px; color:rgba(255,255,255,0.25); cursor:pointer;">···</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>
