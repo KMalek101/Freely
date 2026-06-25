@@ -8,6 +8,7 @@ import { ui } from "../../ui/renderer.js";
 
 import { startSseServer, eventBus } from "./sseServer.js";
 import { askAI } from "../ai.js";
+import { startAudioCapture, stopAudioCapture } from "../audio-capture.js";
 
 const SOCKET_PATH =
   process.platform === "win32"
@@ -16,6 +17,17 @@ const SOCKET_PATH =
 
 export async function startDaemon() {
   startSseServer();
+  startAudioCapture();
+
+  process.on("SIGINT", () => {
+    stopAudioCapture();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    stopAudioCapture();
+    process.exit(0);
+  });
+
   if (fs.existsSync(SOCKET_PATH)) {
     fs.unlinkSync(SOCKET_PATH);
   }
