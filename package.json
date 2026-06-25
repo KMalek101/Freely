@@ -31,7 +31,8 @@
     "hono": "^4.12.27",
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0",
-    "node-global-key-listener": "^0.3.0"
+    "node-global-key-listener": "^0.3.0",
+    "nodejs-whisper": "^0.3.0"
   },
   "devDependencies": {
     "@types/node": "^26.0.0",

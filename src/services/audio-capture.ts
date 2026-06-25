@@ -1,5 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { execFile } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,6 +14,18 @@ const HELPER_BINARY = path.join(
   "release",
   "audio-capture-helper",
 );
+
+const WHISPER_CLI = path.join(
+  PROJECT_ROOT,
+  "node_modules",
+  "nodejs-whisper",
+  "cpp",
+  "whisper.cpp",
+  "build",
+  "bin",
+  "whisper-cli",
+);
+const WHISPER_MODEL = path.join(os.homedir(), ".whisper-models", "ggml-tiny.en.bin");
 
 const SAMPLE_RATE = 16000;
 const CHANNELS = 1;
@@ -45,6 +59,21 @@ function writeWav(data: Buffer, filePath: string): void {
   fs.writeFileSync(filePath, Buffer.concat([header, data]));
 }
 
+function transcribeFile(filePath: string): void {
+  execFile(
+    WHISPER_CLI,
+    ["-m", WHISPER_MODEL, "-f", filePath, "-ng", "-nt", "--no-timestamps"],
+    { timeout: 30000, maxBuffer: 1024 * 1024 },
+    (err, stdout) => {
+      if (err) return;
+      const text = stdout.trim();
+      if (text) {
+        console.log(text);
+      }
+    },
+  );
+}
+
 function flushBuffer(): void {
   if (pcmBuffer.length === 0) return;
 
@@ -53,6 +82,7 @@ function flushBuffer(): void {
   writeWav(pcmBuffer, filePath);
   console.log(`audio-capture-helper: wrote ${pcmBuffer.length} bytes -> ${filePath}`);
   pcmBuffer = Buffer.alloc(0);
+  transcribeFile(filePath);
 }
 
 export function startAudioCapture(): void {
