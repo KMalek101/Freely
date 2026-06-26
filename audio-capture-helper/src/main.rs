@@ -1,15 +1,18 @@
 use std::io::{self, Read, Write};
 use std::os::unix::io::AsRawFd;
-use std::os::unix::io::FromRawFd;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 fn main() -> io::Result<()> {
-    let running = Arc::new(AtomicBool::new(true));
-    let dev = "bluez_output.F4_B6_2D_06_25_D6.1.monitor";
+    let dev = std::env::args().nth(1).unwrap_or_else(|| {
+        eprintln!("Usage: audio-capture-helper <device-name>");
+        eprintln!("Run `pactl list sources short` to list available devices.");
+        std::process::exit(1);
+    });
 
+    let running = Arc::new(AtomicBool::new(true));
     let cmd = "parec";
     let args = [
         format!("--device={dev}"),

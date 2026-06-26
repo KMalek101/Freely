@@ -1,10 +1,29 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
+import { execFile } from 'node:child_process';
 import { EventEmitter } from 'events';
 
 export const eventBus = new EventEmitter();
 
 const app = new Hono();
+
+app.get('/devices', async (c) => {
+  try {
+    const stdout = await new Promise<string>((resolve, reject) => {
+      execFile('pactl', ['list', 'sources', 'short'], { timeout: 5000 }, (err, stdout) => {
+        if (err) reject(err);
+        else resolve(stdout);
+      });
+    });
+    const sources = stdout.trim().split('\n').filter(Boolean).map((line) => {
+      const parts = line.split('\t');
+      return { name: parts[1] ?? '', state: parts[3] ?? '' };
+    });
+    return c.json(sources);
+  } catch {
+    return c.json({ error: 'failed to list audio sources' }, 500);
+  }
+});
 
 app.get('/events', (c) => {
   return new Response(
