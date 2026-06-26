@@ -35,7 +35,7 @@ export async function* analyzeScreenshot(imagePath: string, question?: string): 
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString("base64");
 
-  const systemPrompt = getSystemPrompt('structured', question);
+  const systemPrompt = getSystemPrompt(question);
 
   const result = await model.generateContentStream([
     systemPrompt,

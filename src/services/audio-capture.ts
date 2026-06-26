@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { askAI } from "./ai.js";
 import { eventBus } from "./daemon/sseServer.js";
+import { SYSTEM_PROMPT } from "./prompts.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
@@ -28,9 +29,11 @@ const WHISPER_CLI = path.join(
   "bin",
   "whisper-cli",
 );
-const WHISPER_MODEL = path.join(os.homedir(), ".whisper-models", "ggml-tiny.en.bin");
-
-const SYSTEM_PROMPT = "You are a helpful assistant.";
+const WHISPER_MODEL = path.join(
+  os.homedir(),
+  ".whisper-models",
+  "ggml-tiny.en.bin",
+);
 
 const SAMPLE_RATE = 16000;
 const CHANNELS = 1;
@@ -99,7 +102,9 @@ function flushBuffer(): void {
   const timestamp = Date.now();
   const filePath = `/tmp/freely-audio-${timestamp}.wav`;
   writeWav(pcmBuffer, filePath);
-  console.log(`audio-capture-helper: wrote ${pcmBuffer.length} bytes -> ${filePath}`);
+  console.log(
+    `audio-capture-helper: wrote ${pcmBuffer.length} bytes -> ${filePath}`,
+  );
   pcmBuffer = Buffer.alloc(0);
   transcribeFile(filePath);
 }
@@ -110,7 +115,12 @@ export async function startAudioCapture(): Promise<void> {
     return;
   }
 
-  const configPath = path.join(os.homedir(), ".config", "freely", "config.json");
+  const configPath = path.join(
+    os.homedir(),
+    ".config",
+    "freely",
+    "config.json",
+  );
   let device: string;
   try {
     const config = JSON.parse(await readFile(configPath, "utf-8"));
@@ -135,7 +145,10 @@ export async function startAudioCapture(): Promise<void> {
       const nl = headerAcc.indexOf(0x0a);
       if (nl !== -1) {
         headerRead = true;
-        console.log("audio-capture-helper:", headerAcc.subarray(0, nl).toString());
+        console.log(
+          "audio-capture-helper:",
+          headerAcc.subarray(0, nl).toString(),
+        );
         // Everything after the newline is PCM
         const pcmStart = nl + 1;
         if (pcmStart < headerAcc.length) {

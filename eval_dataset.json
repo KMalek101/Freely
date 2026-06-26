@@ -1,0 +1,113 @@
+[
+  {
+    "label": "tell me about yourself",
+    "context": "interview",
+    "chunks": [
+      {
+        "text": "So let's just start simple — tell me about your",
+        "delayMs": 0
+      },
+      {
+        "text": "background, like how did you get into software and what have you been",
+        "delayMs": 5000
+      },
+      { "text": "working on most recently?", "delayMs": 5000 }
+    ]
+  },
+  {
+    "label": "javascript closure question",
+    "context": "interview",
+    "chunks": [
+      {
+        "text": "Okay technical question — can you explain what a closure is in",
+        "delayMs": 0
+      },
+      {
+        "text": "JavaScript? And like a real example, not just a textbook definition.",
+        "delayMs": 5000
+      }
+    ]
+  },
+  {
+    "label": "design a url shortener",
+    "context": "interview",
+    "chunks": [
+      {
+        "text": "Let's do system design. How would you build something like",
+        "delayMs": 0
+      },
+      {
+        "text": "a URL shortener — storage, the redirect logic,",
+        "delayMs": 5000
+      },
+      {
+        "text": "how you'd scale it if it needed to handle millions of requests a day?",
+        "delayMs": 5000
+      }
+    ]
+  },
+  {
+    "label": "time you faced a challenge",
+    "context": "interview",
+    "chunks": [
+      {
+        "text": "Tell me about a time something went seriously wrong in a project",
+        "delayMs": 0
+      },
+      {
+        "text": "you were working on. What happened and what did you do?",
+        "delayMs": 5000
+      }
+    ]
+  },
+  {
+    "label": "asking for opinion on a decision",
+    "context": "meeting",
+    "chunks": [
+      {
+        "text": "So we're trying to decide between RabbitMQ and Redis Streams for the",
+        "delayMs": 0
+      },
+      {
+        "text": "new pipeline — you've used both right? What would you go with",
+        "delayMs": 5000
+      },
+      {
+        "text": "given we're expecting pretty high throughput?",
+        "delayMs": 5000
+      }
+    ]
+  },
+  {
+    "label": "recap what was discussed",
+    "context": "meeting",
+    "chunks": [
+      {
+        "text": "Okay before we close — can you just quickly run through",
+        "delayMs": 0
+      },
+      {
+        "text": "the main things we agreed on today so everyone's on the same page?",
+        "delayMs": 5000
+      }
+    ]
+  },
+  {
+    "label": "unclear mumbled transcript",
+    "context": "interview",
+    "chunks": [
+      {
+        "text": "So yeah the — uh — how would you deal with like the sync",
+        "delayMs": 0
+      },
+      {
+        "text": "issue when — you know — the user's offline and then comes back",
+        "delayMs": 5000
+      },
+      {
+        "text": "online? Like the conflict resolution part of that?",
+        "delayMs": 5000
+      }
+    ]
+  }
+]
