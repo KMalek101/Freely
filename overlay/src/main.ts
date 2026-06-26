@@ -20,6 +20,10 @@ eventSource.onmessage = (event) => {
     loader.style.display = "none";
   }
 
+  if (data.type === "transcript") {
+    console.log(data.content);
+  }
+
   if (data.type === "ai-chunk") {
     const span = document.createElement("span");
     span.textContent = data.content;

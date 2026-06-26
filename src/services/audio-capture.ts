@@ -4,6 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { askAI } from "./ai.js";
+import { eventBus } from "./daemon/sseServer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
@@ -26,6 +28,8 @@ const WHISPER_CLI = path.join(
   "whisper-cli",
 );
 const WHISPER_MODEL = path.join(os.homedir(), ".whisper-models", "ggml-tiny.en.bin");
+
+const SYSTEM_PROMPT = "You are a helpful assistant.";
 
 const SAMPLE_RATE = 16000;
 const CHANNELS = 1;
@@ -67,9 +71,23 @@ function transcribeFile(filePath: string): void {
     (err, stdout) => {
       if (err) return;
       const text = stdout.trim();
-      if (text) {
-        console.log(text);
-      }
+      if (!text) return;
+
+      console.log(text);
+      eventBus.emit("message", { type: "transcript", content: text });
+
+      (async () => {
+        try {
+          for await (const chunk of askAI(text, SYSTEM_PROMPT)) {
+            eventBus.emit("message", { type: "ai-chunk", content: chunk });
+          }
+        } catch (e) {
+          eventBus.emit("message", {
+            type: "error",
+            content: e instanceof Error ? e.message : String(e),
+          });
+        }
+      })();
     },
   );
 }

@@ -2,14 +2,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from "fs";
 import { getSystemPrompt } from "./prompts.js";
 
-export async function* askAI(question: string): AsyncGenerator<string, void, unknown> {
+export async function* askAI(question: string, systemPrompt?: string): AsyncGenerator<string, void, unknown> {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_API_KEY is not set");
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3.1-flash-lite",
+    ...(systemPrompt ? { systemInstruction: systemPrompt } : {}),
+  });
 
   const result = await model.generateContentStream([
     question
