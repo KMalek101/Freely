@@ -17,7 +17,7 @@ const SOCKET_PATH =
 
 export async function startDaemon() {
   startSseServer();
-  startAudioCapture();
+  await startAudioCapture();
 
   process.on("SIGINT", () => {
     stopAudioCapture();

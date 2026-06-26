@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -103,13 +104,25 @@ function flushBuffer(): void {
   transcribeFile(filePath);
 }
 
-export function startAudioCapture(): void {
+export async function startAudioCapture(): Promise<void> {
   if (child) {
     console.warn("audio-capture-helper already running");
     return;
   }
 
-  child = spawn(HELPER_BINARY, [], {
+  const configPath = path.join(os.homedir(), ".config", "freely", "config.json");
+  let device: string;
+  try {
+    const config = JSON.parse(await readFile(configPath, "utf-8"));
+    device = config.device;
+    if (!device) throw new Error();
+  } catch {
+    throw new Error(
+      "No device configured. Run `freely` first to select an audio device.",
+    );
+  }
+
+  child = spawn(HELPER_BINARY, [device], {
     stdio: ["ignore", "pipe", "inherit"],
   });
 
