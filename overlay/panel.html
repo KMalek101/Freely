@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Freely Panel</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="container" style="
+      width: 100vw; height: 100vh;
+      background: rgba(24, 24, 26, 0.95);
+      padding: 14px 16px;
+      color: #fff;
+      display: flex; flex-direction: column;
+    ">
+      <header data-tauri-drag-region style="
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 10px; cursor: grab; flex-shrink: 0;
+      ">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
+            <path d="M9 1L10.5 7.5L17 9L10.5 10.5L9 17L7.5 10.5L1 9L7.5 7.5L9 1Z" fill="white"/>
+          </svg>
+          <span style="font-size: 13px; font-weight: 500;">freely</span>
+        </div>
+        <span style="font-size: 11px; color: rgba(255,255,255,0.3);">listening</span>
+      </header>
+
+      <div style="height: 1px; background: rgba(255,255,255,0.06); margin-bottom: 10px; flex-shrink: 0;"></div>
+
+      <div id="transcripts" style="
+        flex-shrink: 0; max-height: 40%; overflow-y: auto;
+        font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.5);
+        margin-bottom: 8px;
+      "></div>
+
+    </div>
+    <script>
+      const transcripts = document.getElementById("transcripts");
+
+      function scrollToBottom(el) {
+        el.scrollTop = el.scrollHeight;
+      }
+
+      const eventSource = new EventSource("http://localhost:3001/events");
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "transcript") {
+          const entry = document.createElement("div");
+          entry.textContent = data.content;
+          transcripts.appendChild(entry);
+          scrollToBottom(transcripts);
+        }
+      };
+    </script>
+  </body>
+</html>

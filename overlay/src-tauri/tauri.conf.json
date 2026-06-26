@@ -11,18 +11,29 @@
   },
   "app": {
     "withGlobalTauri": true,
-      "windows": [
-        {
-          "fullscreen": false,
-          "height": 120,
-          "resizable": false,
-          "title": "Freely",
-          "width": 280,
-          "transparent": true,
-          "decorations": false,
-          "alwaysOnTop": true
-        }
-      ],
+    "windows": [
+      {
+        "fullscreen": false,
+        "height": 120,
+        "resizable": false,
+        "title": "Freely",
+        "width": 280,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true
+      },
+      {
+        "label": "panel",
+        "url": "panel.html",
+        "width": 300,
+        "height": 800,
+        "x": 0,
+        "y": 0,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "transparent": true
+      }
+    ],
 
     "security": {
       "csp": null

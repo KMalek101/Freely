@@ -1,7 +1,6 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const win = getCurrentWindow();
-const content = document.getElementById("content")!;
 const loader = document.getElementById("loader")!;
 const messages = document.getElementById("messages")!;
 const minBtn = document.getElementById("minBtn")!;
@@ -18,10 +17,6 @@ eventSource.onmessage = (event) => {
   // Hide loader on first message
   if (loader) {
     loader.style.display = "none";
-  }
-
-  if (data.type === "transcript") {
-    console.log(data.content);
   }
 
   if (data.type === "ai-chunk") {
