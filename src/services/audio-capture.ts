@@ -9,6 +9,7 @@ import { askAI } from "./ai.js";
 import { eventBus } from "./daemon/sseServer.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
 import { RmsVad } from "./vad.js";
+import pdfParse from "pdf-parse";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
@@ -59,6 +60,7 @@ let speechFrameCount = 0;
 let maxSegmentTimer: ReturnType<typeof setTimeout> | null = null;
 let currentTurn = "";
 let turnTimer: ReturnType<typeof setTimeout> | null = null;
+let cvContext = "";
 
 function writeWav(data: Buffer, filePath: string): void {
   const dataSize = data.length;
@@ -107,8 +109,11 @@ function resetTurnTimer(): void {
     currentTurn = "";
     turnTimer = null;
     if (!text) return;
+    const prompt = cvContext
+      ? `The user has provided the following background about themselves:\n\n${cvContext}\n\n===\n\n${SYSTEM_PROMPT}`
+      : SYSTEM_PROMPT;
     try {
-      for await (const chunk of askAI(text, SYSTEM_PROMPT)) {
+      for await (const chunk of askAI(text, prompt)) {
         eventBus.emit("message", { type: "ai-chunk", content: chunk });
       }
     } catch (e) {
@@ -243,6 +248,23 @@ export async function startAudioCapture(): Promise<void> {
   } catch {
     throw new Error(
       "No device configured. Run `freely` first to select an audio device.",
+    );
+  }
+
+  const configDir = path.join(os.homedir(), ".config", "freely");
+  const cvTxtPath = path.join(configDir, "cv.txt");
+  const cvPdfPath = path.join(configDir, "cv.pdf");
+  if (fs.existsSync(cvTxtPath)) {
+    cvContext = await readFile(cvTxtPath, "utf-8");
+    console.log("[cv] loaded cv.txt");
+  } else if (fs.existsSync(cvPdfPath)) {
+    const buf = await readFile(cvPdfPath);
+    const parsed = await pdfParse(buf);
+    cvContext = parsed.text;
+    console.log("[cv] loaded cv.pdf");
+  } else {
+    console.log(
+      "[cv] No cv.txt or cv.pdf found in ~/.config/freely/.\n      Drop one there to inject your background into the AI context.",
     );
   }
 

@@ -3,9 +3,10 @@
 import "dotenv/config";
 import { Command } from "commander";
 import { execFileSync } from "child_process";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
+import fs from "fs";
 import { homedir } from "os";
-import { join } from "path";
+import { join, resolve, extname } from "path";
 import { startInteractiveLoop } from "./interactive/loop.js";
 import { startDaemon } from "./services/daemon/server.js";
 import { takeScreenshot } from "./services/screenshot.js";
@@ -77,8 +78,47 @@ async function ensureDevice() {
   console.log(`Device saved to ${configPath}`);
 }
 
+async function ensureCv() {
+  const configDir = join(homedir(), ".config", "freely");
+  const cvTxtPath = join(configDir, "cv.txt");
+  const cvPdfPath = join(configDir, "cv.pdf");
+
+  if (fs.existsSync(cvTxtPath) || fs.existsSync(cvPdfPath)) return;
+
+  const { text } = await import("@clack/prompts");
+  const input = await text({
+    message:
+      "Enter path to your CV or background file\n  (.txt or .pdf, press Enter to skip):",
+  });
+
+  if (!input || typeof input !== "string" || !input.trim()) {
+    console.log(
+      "[cv] Skipped — drop cv.txt or cv.pdf in ~/.config/freely/ anytime to inject your background into the AI context.",
+    );
+    return;
+  }
+
+  const resolvedPath = resolve(input.trim());
+  const ext = extname(resolvedPath).toLowerCase();
+
+  if (ext !== ".txt" && ext !== ".pdf") {
+    console.log("[cv] Only .txt and .pdf files are supported. Skipping.");
+    return;
+  }
+
+  if (!fs.existsSync(resolvedPath)) {
+    console.log("[cv] File not found. Skipping.");
+    return;
+  }
+
+  const dest = ext === ".txt" ? cvTxtPath : cvPdfPath;
+  await copyFile(resolvedPath, dest);
+  console.log(`[cv] Saved to ${dest}`);
+}
+
 program.command("daemon").action(async () => {
   await ensureDevice();
+  await ensureCv();
   await startDaemon();
 });
 
@@ -139,6 +179,7 @@ program.command("screenshot [question]").action(async (question?: string) => {
 
 if (process.argv.length === 2) {
   await ensureDevice();
+  await ensureCv();
   await startInteractiveLoop();
 } else {
   program.parse();
