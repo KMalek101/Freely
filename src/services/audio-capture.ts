@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { askAI } from "./ai.js";
 import { eventBus } from "./daemon/sseServer.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
+import { RmsVad } from "./vad.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
@@ -39,11 +40,25 @@ const SAMPLE_RATE = 16000;
 const CHANNELS = 1;
 const BITS_PER_SAMPLE = 16;
 const BYTES_PER_SECOND = (SAMPLE_RATE * CHANNELS * BITS_PER_SAMPLE) / 8;
-const FLUSH_INTERVAL_MS = 5000;
+
+// VAD config
+const FRAME_SAMPLES = 480;
+const FRAME_SIZE_BYTES = FRAME_SAMPLES * 2;
+const FRAME_DURATION_MS = 30;
+const SILENCE_TIMEOUT_FRAMES = 25;
+const MIN_SPEECH_DURATION_FRAMES = 9;
+const MAX_SEGMENT_DURATION_MS = 30_000;
 
 let child: ChildProcess | null = null;
-let pcmBuffer = Buffer.alloc(0);
-let flushTimer: ReturnType<typeof setInterval> | null = null;
+let vad: RmsVad | null = null;
+let alignBuffer = Buffer.alloc(0);
+let segmentActive = false;
+let speechBuffer = Buffer.alloc(0);
+let silenceFrameCount = 0;
+let speechFrameCount = 0;
+let maxSegmentTimer: ReturnType<typeof setTimeout> | null = null;
+let currentTurn = "";
+let turnTimer: ReturnType<typeof setTimeout> | null = null;
 
 function writeWav(data: Buffer, filePath: string): void {
   const dataSize = data.length;
@@ -79,34 +94,133 @@ function transcribeFile(filePath: string): void {
 
       console.log(text);
       eventBus.emit("message", { type: "transcript", content: text });
-
-      (async () => {
-        try {
-          for await (const chunk of askAI(text, SYSTEM_PROMPT)) {
-            eventBus.emit("message", { type: "ai-chunk", content: chunk });
-          }
-        } catch (e) {
-          eventBus.emit("message", {
-            type: "error",
-            content: e instanceof Error ? e.message : String(e),
-          });
-        }
-      })();
+      currentTurn += (currentTurn ? " " : "") + text;
+      resetTurnTimer();
     },
   );
 }
 
-function flushBuffer(): void {
-  if (pcmBuffer.length === 0) return;
+function resetTurnTimer(): void {
+  if (turnTimer) clearTimeout(turnTimer);
+  turnTimer = setTimeout(async () => {
+    const text = currentTurn;
+    currentTurn = "";
+    turnTimer = null;
+    if (!text) return;
+    try {
+      for await (const chunk of askAI(text, SYSTEM_PROMPT)) {
+        eventBus.emit("message", { type: "ai-chunk", content: chunk });
+      }
+    } catch (e) {
+      eventBus.emit("message", {
+        type: "error",
+        content: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }, 2000);
+}
+
+function flushSpeechSegment(): void {
+  if (speechBuffer.length === 0) return;
+
+  if (maxSegmentTimer) {
+    clearTimeout(maxSegmentTimer);
+    maxSegmentTimer = null;
+  }
 
   const timestamp = Date.now();
   const filePath = `/tmp/freely-audio-${timestamp}.wav`;
-  writeWav(pcmBuffer, filePath);
+  writeWav(speechBuffer, filePath);
   console.log(
-    `audio-capture-helper: wrote ${pcmBuffer.length} bytes -> ${filePath}`,
+    `[vad] wrote speech segment (${speechBuffer.length} bytes) -> ${filePath}`,
   );
-  pcmBuffer = Buffer.alloc(0);
   transcribeFile(filePath);
+}
+
+function resetSegmentState(): void {
+  speechBuffer = Buffer.alloc(0);
+  speechFrameCount = 0;
+  silenceFrameCount = 0;
+  segmentActive = false;
+  if (maxSegmentTimer) {
+    clearTimeout(maxSegmentTimer);
+    maxSegmentTimer = null;
+  }
+}
+
+function processPcmFrame(frameBuf: Buffer): void {
+  const copy = Buffer.alloc(FRAME_SIZE_BYTES);
+  frameBuf.copy(copy);
+  const frame = new Int16Array(copy.buffer, copy.byteOffset, FRAME_SAMPLES);
+
+  const speaking = vad!.isSpeech(frame);
+
+  if (speaking) {
+    silenceFrameCount = 0;
+    speechFrameCount++;
+    speechBuffer = Buffer.concat([speechBuffer, copy]);
+
+    if (!segmentActive) {
+      segmentActive = true;
+      maxSegmentTimer = setTimeout(() => {
+        if (segmentActive && speechFrameCount >= MIN_SPEECH_DURATION_FRAMES) {
+          console.log(
+            `[vad] max segment duration reached (${speechFrameCount * FRAME_DURATION_MS}ms)`,
+          );
+          flushSpeechSegment();
+        }
+        resetSegmentState();
+      }, MAX_SEGMENT_DURATION_MS);
+      console.log("[vad] speech started");
+    }
+  } else {
+    if (segmentActive) {
+      silenceFrameCount++;
+      speechBuffer = Buffer.concat([speechBuffer, copy]);
+
+      if (silenceFrameCount >= SILENCE_TIMEOUT_FRAMES) {
+        if (speechFrameCount >= MIN_SPEECH_DURATION_FRAMES) {
+          console.log(
+            `[vad] speech ended (${speechFrameCount * FRAME_DURATION_MS}ms)`,
+          );
+          flushSpeechSegment();
+        } else {
+          console.log(
+            `[vad] discarded short burst (${speechFrameCount * FRAME_DURATION_MS}ms)`,
+          );
+        }
+        resetSegmentState();
+      }
+    }
+  }
+}
+
+function processPcmData(data: Buffer): void {
+  const aligned = Buffer.concat([alignBuffer, data]);
+  let offset = 0;
+
+  try {
+    while (offset + FRAME_SIZE_BYTES <= aligned.length) {
+      const frameBuf = aligned.subarray(offset, offset + FRAME_SIZE_BYTES);
+      processPcmFrame(frameBuf);
+      offset += FRAME_SIZE_BYTES;
+    }
+  } catch (err) {
+    console.error("[pcm] frame processing crashed:", err);
+  }
+
+  alignBuffer = aligned.subarray(offset);
+}
+
+function resetSpeechState(): void {
+  resetSegmentState();
+  alignBuffer = Buffer.alloc(0);
+  currentTurn = "";
+  if (turnTimer) {
+    clearTimeout(turnTimer);
+    turnTimer = null;
+  }
+  vad?.reset();
 }
 
 export async function startAudioCapture(): Promise<void> {
@@ -136,6 +250,9 @@ export async function startAudioCapture(): Promise<void> {
     stdio: ["ignore", "pipe", "inherit"],
   });
 
+  vad = new RmsVad();
+  resetSpeechState();
+
   let headerRead = false;
   let headerAcc = Buffer.alloc(0);
 
@@ -149,25 +266,24 @@ export async function startAudioCapture(): Promise<void> {
           "audio-capture-helper:",
           headerAcc.subarray(0, nl).toString(),
         );
-        // Everything after the newline is PCM
         const pcmStart = nl + 1;
         if (pcmStart < headerAcc.length) {
-          pcmBuffer = Buffer.concat([pcmBuffer, headerAcc.subarray(pcmStart)]);
+          processPcmData(headerAcc.subarray(pcmStart));
         }
         headerAcc = Buffer.alloc(0);
-        flushTimer = setInterval(flushBuffer, FLUSH_INTERVAL_MS);
         return;
       }
       return;
     }
 
-    pcmBuffer = Buffer.concat([pcmBuffer, data]);
+    processPcmData(data);
   });
 
   child.on("exit", (code, signal) => {
-    // Flush remaining PCM before cleanup
-    flushBuffer();
-    if (flushTimer) clearInterval(flushTimer);
+    if (segmentActive && speechFrameCount >= MIN_SPEECH_DURATION_FRAMES) {
+      flushSpeechSegment();
+    }
+    resetSpeechState();
     console.log(`audio-capture-helper exited (code=${code}, signal=${signal})`);
     child = null;
   });
@@ -181,8 +297,10 @@ export async function startAudioCapture(): Promise<void> {
 export function stopAudioCapture(): void {
   if (!child) return;
 
-  flushBuffer();
-  if (flushTimer) clearInterval(flushTimer);
+  if (segmentActive && speechFrameCount >= MIN_SPEECH_DURATION_FRAMES) {
+    flushSpeechSegment();
+  }
+  resetSpeechState();
   child.kill("SIGTERM");
   child = null;
 }
