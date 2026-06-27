@@ -74,7 +74,14 @@ async function ensureDevice() {
   }
 
   await mkdir(configDir, { recursive: true });
-  await writeFile(configPath, JSON.stringify({ device }, null, 2) + "\n");
+  let existing: Record<string, unknown> = {};
+  try {
+    existing = JSON.parse(await readFile(configPath, "utf-8"));
+  } catch {}
+  await writeFile(
+    configPath,
+    JSON.stringify({ ...existing, device }, null, 2) + "\n",
+  );
   console.log(`Device saved to ${configPath}`);
 }
 
@@ -116,8 +123,68 @@ async function ensureCv() {
   console.log(`[cv] Saved to ${dest}`);
 }
 
+async function ensureProvider() {
+  const configDir = join(homedir(), ".config", "freely");
+  const configPath = join(configDir, "config.json");
+
+  let existing: Record<string, unknown> = {};
+  try {
+    existing = JSON.parse(await readFile(configPath, "utf-8"));
+  } catch {}
+
+  if (existing.provider && existing.apiKey && existing.model) return;
+
+  const { select, text, isCancel } = await import("@clack/prompts");
+
+  const provider = await select({
+    message: "Select AI provider:",
+    options: [
+      { value: "gemini", label: "Gemini (Google)" },
+      { value: "anthropic", label: "Anthropic (Claude)" },
+      { value: "openai", label: "OpenAI (GPT)" },
+    ],
+  });
+
+  if (isCancel(provider) || typeof provider !== "string") {
+    console.error("No provider selected.");
+    process.exit(1);
+  }
+
+  const apiKey = await text({
+    message: "Enter your API key:",
+    validate: (value) => {
+      if (!value) return "API key is required";
+    },
+  });
+
+  if (isCancel(apiKey) || typeof apiKey !== "string" || !apiKey) {
+    console.error("No API key provided.");
+    process.exit(1);
+  }
+
+  const model = await text({
+    message:
+      "Enter model name\n  (e.g. gpt-4o, claude-3-5-sonnet-latest, gemini-2.0-flash):",
+    validate: (value) => {
+      if (!value) return "Model name is required";
+    },
+  });
+
+  if (isCancel(model) || typeof model !== "string" || !model) {
+    console.error("No model name provided.");
+    process.exit(1);
+  }
+
+  await writeFile(
+    configPath,
+    JSON.stringify({ ...existing, provider, apiKey, model }, null, 2) + "\n",
+  );
+  console.log(`AI provider saved to ${configPath}`);
+}
+
 program.command("daemon").action(async () => {
   await ensureDevice();
+  await ensureProvider();
   await ensureCv();
   await startDaemon();
 });
@@ -179,6 +246,7 @@ program.command("screenshot [question]").action(async (question?: string) => {
 
 if (process.argv.length === 2) {
   await ensureDevice();
+  await ensureProvider();
   await ensureCv();
   await startInteractiveLoop();
 } else {

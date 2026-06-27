@@ -21,6 +21,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.106.0",
     "@clack/prompts": "^1.6.0",
     "@google/generative-ai": "^0.24.1",
     "@hono/node-server": "^2.0.6",
@@ -34,6 +35,7 @@
     "marked-terminal": "^7.3.0",
     "node-global-key-listener": "^0.3.0",
     "nodejs-whisper": "^0.3.0",
+    "openai": "^6.45.0",
     "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
