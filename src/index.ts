@@ -2,7 +2,6 @@
 
 import "dotenv/config";
 import { Command } from "commander";
-import { execFileSync } from "child_process";
 import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import fs from "fs";
 import { homedir } from "os";
@@ -12,30 +11,12 @@ import { startDaemon } from "./services/daemon/server.js";
 import { takeScreenshot } from "./services/screenshot.js";
 import { analyzeScreenshot } from "./services/ai.js";
 import { ui } from "./ui/renderer.js";
+import { listAudioSources } from "./services/config.js";
+import type { AudioSource } from "./services/config.js";
 
 const program = new Command();
 
 program.name("freely").description("AI screen assistant");
-
-interface AudioSource {
-  name: string;
-  state: string;
-}
-
-function listAudioSources(): AudioSource[] {
-  const stdout = execFileSync("pactl", ["list", "sources", "short"], {
-    timeout: 5000,
-    encoding: "utf-8",
-  });
-  return stdout
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const parts = line.split("\t");
-      return { name: parts[1] ?? "", state: parts[3] ?? "" };
-    });
-}
 
 async function ensureDevice() {
   const configDir = join(homedir(), ".config", "freely");
@@ -242,6 +223,35 @@ program.command("screenshot [question]").action(async (question?: string) => {
     client.end();
     process.exit(0);
   });
+});
+
+const configCmd = program.command("config").description("Manage configuration");
+
+configCmd
+  .command("show")
+  .description("Show current configuration")
+  .action(async () => {
+    const { loadConfig, printConfig } = await import("./services/config.js");
+    const config = await loadConfig();
+    printConfig(config);
+  });
+
+configCmd
+  .command("edit")
+  .description("Open config file in $EDITOR (or vim)")
+  .action(async () => {
+    const { editConfigInEditor } = await import("./services/config.js");
+    try {
+      await editConfigInEditor();
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+  });
+
+configCmd.action(async () => {
+  const { interactiveConfig } = await import("./services/config.js");
+  await interactiveConfig();
 });
 
 if (process.argv.length === 2) {

@@ -7,14 +7,12 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { getSystemPrompt } from "./prompts.js";
 
-let _config: { provider: string; apiKey: string; model: string } | null = null;
+const CONFIG_PATH = join(homedir(), ".config", "freely", "config.json");
 
 async function getConfig() {
-  if (_config) return _config;
-  const configPath = join(homedir(), ".config", "freely", "config.json");
   let raw: string;
   try {
-    raw = await readFile(configPath, "utf-8");
+    raw = await readFile(CONFIG_PATH, "utf-8");
   } catch {
     throw new Error(
       "No configuration found. Run `freely` first to set up your AI provider.",
@@ -26,8 +24,7 @@ async function getConfig() {
       "Incomplete AI configuration. Run `freely` to set up your provider, API key, and model.",
     );
   }
-  _config = parsed;
-  return _config as NonNullable<typeof _config>;
+  return parsed as { provider: string; apiKey: string; model: string };
 }
 
 // --- Gemini ---
