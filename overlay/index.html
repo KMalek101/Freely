@@ -4,53 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Freely</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
-  <body class="bg-transparent overflow-hidden">
-    <div style="
-      width: 100vw; height: 100vh;
-      background: rgba(30, 30, 32, 0.92);
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 18px 20px 16px;
-      color: #fff;
-      display: flex; flex-direction: column;
-    ">
-      <!-- Header (Draggable) -->
-      <header data-tauri-drag-region style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; cursor: grab;">
-        <div data-tauri-drag-region style="display:flex; align-items:center; gap:8px;">
-          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-            <path d="M9 1L10.5 7.5L17 9L10.5 10.5L9 17L7.5 10.5L1 9L7.5 7.5L9 1Z" fill="white"/>
+  <body>
+    <div class="glass">
+      <header class="header" data-tauri-drag-region>
+        <div class="header-left" data-tauri-drag-region>
+          <svg class="header-logo" viewBox="0 0 18 18" fill="none">
+            <path d="M9 1.5L10.3 7.7L16.5 9L10.3 10.3L9 16.5L7.7 10.3L1.5 9L7.7 7.7L9 1.5Z" fill="rgba(255,255,255,0.9)"/>
           </svg>
-          <span style="font-size:15px; font-weight:500;">freely</span>
+          <span class="header-title">freely</span>
         </div>
-        <div style="display:flex; align-items:center; gap:14px;">
-          <button id="minBtn" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:18px;padding:0;line-height:1;">—</button>
-          <button id="closeBtn" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:16px;padding:0;line-height:1;">✕</button>
+        <div class="header-actions">
+          <button id="minBtn" class="header-btn minimize" aria-label="Minimize">&minus;</button>
+          <button id="closeBtn" class="header-btn close" aria-label="Close">&times;</button>
         </div>
       </header>
 
-      <div style="height:1px; background:rgba(255,255,255,0.08); margin-bottom:14px;"></div>
+      <div class="divider"></div>
 
-      <!-- Loader -->
-      <div id="loader" style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+      <div id="loader" class="status-row">
         <div class="spinner"></div>
-        <span style="font-size:14px; color:rgba(255,255,255,0.4); letter-spacing: 0.02em;">Analyzing screenshot...</span>
+        <span class="status-text">Analyzing screenshot&hellip;</span>
       </div>
 
-      <!-- Messages (Scrollable) -->
-      <div id="messages" style="flex-grow: 1; overflow-y: auto; font-size:14.5px; line-height:1.65; color:rgba(255,255,255,0.88);"></div>
+      <div id="messages" class="messages"></div>
 
-      <div style="height:1px; background:rgba(255,255,255,0.08); margin:16px 0 12px;"></div>
+      <div class="divider"></div>
 
-      <!-- Footer -->
-      <footer style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="display:flex; align-items:center; gap:6px;">
-          <div style="width:7px;height:7px;border-radius:50%;background:#34d399;"></div>
-          <span style="font-size:11px; color:rgba(255,255,255,0.4);">Gemini Flash</span>
+      <footer class="footer">
+        <div class="footer-left">
+          <div class="status-dot"></div>
+          <span class="model-name">Gemini Flash</span>
         </div>
-        <span style="font-size:16px; color:rgba(255,255,255,0.25); cursor:pointer;">···</span>
+        <span class="footer-menu">&ctdot;</span>
       </footer>
     </div>
     <script type="module" src="/src/main.ts"></script>

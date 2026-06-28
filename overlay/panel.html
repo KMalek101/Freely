@@ -7,54 +7,25 @@
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <div id="container" style="
-      width: 100vw; height: 100vh;
-      background: rgba(24, 24, 26, 0.95);
-      padding: 14px 16px;
-      color: #fff;
-      display: flex; flex-direction: column;
-    ">
-      <header data-tauri-drag-region style="
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 10px; cursor: grab; flex-shrink: 0;
-      ">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
-            <path d="M9 1L10.5 7.5L17 9L10.5 10.5L9 17L7.5 10.5L1 9L7.5 7.5L9 1Z" fill="white"/>
+    <div class="glass-panel">
+      <header class="header" data-tauri-drag-region>
+        <div class="header-left" data-tauri-drag-region>
+          <svg class="header-logo" viewBox="0 0 18 18" fill="none">
+            <path d="M9 1.5L10.3 7.7L16.5 9L10.3 10.3L9 16.5L7.7 10.3L1.5 9L7.7 7.7L9 1.5Z" fill="rgba(255,255,255,0.9)"/>
           </svg>
-          <span style="font-size: 13px; font-weight: 500;">freely</span>
+          <span class="header-title">freely</span>
+          <span class="header-subtitle">listening</span>
         </div>
-        <span style="font-size: 11px; color: rgba(255,255,255,0.3);">listening</span>
+        <div class="header-actions">
+          <button id="panelMinBtn" class="header-btn minimize" aria-label="Minimize">&minus;</button>
+          <button id="panelCloseBtn" class="header-btn close" aria-label="Close">&times;</button>
+        </div>
       </header>
 
-      <div style="height: 1px; background: rgba(255,255,255,0.06); margin-bottom: 10px; flex-shrink: 0;"></div>
+      <div class="divider"></div>
 
-      <div id="transcripts" style="
-        flex-shrink: 0; max-height: 40%; overflow-y: auto;
-        font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.5);
-        margin-bottom: 8px;
-      "></div>
-
+      <div id="transcripts" class="transcripts"></div>
     </div>
-    <script>
-      const transcripts = document.getElementById("transcripts");
-
-      function scrollToBottom(el) {
-        el.scrollTop = el.scrollHeight;
-      }
-
-      const eventSource = new EventSource("http://localhost:3001/events");
-
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "transcript") {
-          const entry = document.createElement("div");
-          entry.textContent = data.content;
-          transcripts.appendChild(entry);
-          scrollToBottom(transcripts);
-        }
-      };
-    </script>
+    <script type="module" src="/src/panel.ts"></script>
   </body>
 </html>

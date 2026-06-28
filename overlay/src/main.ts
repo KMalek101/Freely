@@ -9,19 +9,28 @@ const closeBtn = document.getElementById("closeBtn")!;
 minBtn.addEventListener("click", () => win.minimize());
 closeBtn.addEventListener("click", () => win.close());
 
+function appendMessage(content: string) {
+  const entry = document.createElement("div");
+  entry.className = "message-entry";
+  entry.textContent = content;
+  messages.appendChild(entry);
+  messages.scrollTop = messages.scrollHeight;
+}
+
 const eventSource = new EventSource("http://localhost:3001/events");
 
 eventSource.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  
-  // Hide loader on first message
-  if (loader) {
-    loader.style.display = "none";
+
+  if (loader && !loader.classList.contains("hidden")) {
+    loader.classList.add("hidden");
   }
 
   if (data.type === "ai-chunk") {
-    const span = document.createElement("span");
-    span.textContent = data.content;
-    messages.appendChild(span);
+    appendMessage(data.content);
   }
+};
+
+eventSource.onerror = () => {
+  appendMessage("[Connection lost]");
 };
