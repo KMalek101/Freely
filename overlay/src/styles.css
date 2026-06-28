@@ -7,10 +7,10 @@
 :root {
   --bg-glass: rgba(24, 24, 28, 0.85);
   --bg-glass-panel: rgba(22, 22, 26, 0.92);
-  --text-primary: rgba(255, 255, 255, 0.92);
-  --text-secondary: rgba(255, 255, 255, 0.5);
-  --text-tertiary: rgba(255, 255, 255, 0.28);
-  --text-quaternary: rgba(255, 255, 255, 0.15);
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(255, 255, 255, 0.72);
+  --text-tertiary: rgba(255, 255, 255, 0.48);
+  --text-quaternary: rgba(255, 255, 255, 0.3);
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-hover: rgba(255, 255, 255, 0.12);
   --divider: rgba(255, 255, 255, 0.06);
@@ -22,7 +22,7 @@
   --font-stack: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', 'Segoe UI', Roboto, Arial, sans-serif;
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.37), 0 1px 4px rgba(0, 0, 0, 0.18);
   --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.5);
-  --blur-amount: 40px;
+  --blur-amount: 20px; /* reduced from 40px — less background ghosting, text stays crisp */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
 }
@@ -53,6 +53,7 @@ html, body {
   box-shadow: var(--shadow-glass);
   padding: 16px 20px;
   color: var(--text-primary);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -229,7 +230,7 @@ html, body {
 
 .status-text {
   font-size: 13px;
-  font-weight: 400;
+  font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 0.01em;
 }
@@ -239,15 +240,18 @@ html, body {
 .messages {
   flex: 1;
   overflow-y: auto;
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 15px;
+  line-height: 1.7;
   color: var(--text-primary);
   scroll-behavior: smooth;
-  padding: 2px 0;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  margin: 6px 0;
 }
 
-.messages:empty {
-  display: none;
+.messages:empty::after {
+  content: '';
 }
 
 .message-entry {
@@ -269,12 +273,8 @@ html, body {
 /* ── Footer ── */
 
 .footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   flex-shrink: 0;
-  position: relative;
-  z-index: 1;
+  min-height: 8px;
 }
 
 .footer-left {
