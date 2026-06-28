@@ -2,6 +2,7 @@
 
 import "dotenv/config";
 import { Command } from "commander";
+import { spawn } from "child_process";
 import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import fs from "fs";
 import { homedir } from "os";
@@ -24,6 +25,11 @@ async function ensureDevice() {
     const existing = JSON.parse(await readFile(configPath, "utf-8"));
     if (existing.device) return;
   } catch {}
+
+  if (!process.stdin.isTTY) {
+    console.error("No device configured. Run 'freely' interactively first.");
+    process.exit(1);
+  }
 
   let devices: AudioSource[];
   try {
@@ -70,6 +76,7 @@ async function ensureCv() {
   const cvPdfPath = join(configDir, "cv.pdf");
 
   if (fs.existsSync(cvTxtPath) || fs.existsSync(cvPdfPath)) return;
+  if (!process.stdin.isTTY) return;
 
   const { text } = await import("@clack/prompts");
   const input = await text({
@@ -102,6 +109,58 @@ async function ensureCv() {
   console.log(`[cv] Saved to ${dest}`);
 }
 
+const CONFIG_DIR = join(homedir(), ".config", "freely");
+const PID_FILE = join(CONFIG_DIR, "daemon.pid");
+
+function readPid(): number | null {
+  try {
+    const pid = parseInt(fs.readFileSync(PID_FILE, "utf-8").trim(), 10);
+    return isNaN(pid) ? null : pid;
+  } catch {
+    return null;
+  }
+}
+
+function writePid(pid: number): void {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(PID_FILE, String(pid));
+}
+
+function deletePid(): void {
+  try {
+    fs.unlinkSync(PID_FILE);
+  } catch {}
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ensureDaemon(): void {
+  const pid = readPid();
+  if (pid !== null) {
+    if (isProcessAlive(pid)) return;
+    deletePid();
+  }
+
+  const entry = process.argv[1]!;
+  const args = entry.endsWith(".ts")
+    ? ["--import", "tsx", entry, "daemon"]
+    : [entry, "daemon"];
+
+  const child = spawn(process.execPath, args, {
+    detached: true,
+    stdio: "ignore",
+  });
+  child.unref();
+  writePid(child.pid!);
+}
+
 async function ensureProvider() {
   const configDir = join(homedir(), ".config", "freely");
   const configPath = join(configDir, "config.json");
@@ -112,6 +171,11 @@ async function ensureProvider() {
   } catch {}
 
   if (existing.provider && existing.apiKey && existing.model) return;
+
+  if (!process.stdin.isTTY) {
+    console.error("Incomplete AI provider config. Run 'freely' interactively first.");
+    process.exit(1);
+  }
 
   const { select, text, isCancel } = await import("@clack/prompts");
 
@@ -165,7 +229,21 @@ program.command("daemon").action(async () => {
   await ensureDevice();
   await ensureProvider();
   await ensureCv();
+  writePid(process.pid);
   await startDaemon();
+});
+
+program.command("stop").description("Stop the background daemon").action(() => {
+  const pid = readPid();
+  if (pid !== null && isProcessAlive(pid)) {
+    process.kill(pid, "SIGTERM");
+    deletePid();
+    console.log("Daemon stopped.");
+  } else {
+    console.log("Daemon is not running.");
+    deletePid();
+  }
+  process.exit(0);
 });
 
 program.command("trigger <action> [args...]").action(async (action: string, args: string[]) => {
@@ -256,6 +334,7 @@ if (process.argv.length === 2) {
   await ensureDevice();
   await ensureProvider();
   await ensureCv();
+  ensureDaemon();
   await startInteractiveLoop();
 } else {
   program.parse();
