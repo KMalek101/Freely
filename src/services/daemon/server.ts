@@ -4,7 +4,6 @@ import os from "os";
 import path from "path";
 import { takeScreenshot } from "../screenshot.js";
 import { analyzeScreenshot } from "../ai.js";
-import { ui } from "../../ui/renderer.js";
 
 import { startSseServer, eventBus } from "./sseServer.js";
 import { askAI } from "../ai.js";

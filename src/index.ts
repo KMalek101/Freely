@@ -9,8 +9,6 @@ import { join, resolve, extname } from "path";
 import { startInteractiveLoop } from "./interactive/loop.js";
 import { startDaemon } from "./services/daemon/server.js";
 import { takeScreenshot } from "./services/screenshot.js";
-import { analyzeScreenshot } from "./services/ai.js";
-import { ui } from "./ui/renderer.js";
 import { listAudioSources } from "./services/config.js";
 import type { AudioSource } from "./services/config.js";
 
