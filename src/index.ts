@@ -7,6 +7,7 @@ import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import fs from "fs";
 import { homedir } from "os";
 import { join, resolve, extname } from "path";
+import { fileURLToPath } from "url";
 import { startInteractiveLoop } from "./interactive/loop.js";
 import { startDaemon } from "./services/daemon/server.js";
 import { takeScreenshot } from "./services/screenshot.js";
@@ -109,6 +110,7 @@ async function ensureCv() {
   console.log(`[cv] Saved to ${dest}`);
 }
 
+const OVERLAY_PID_FILE = join(homedir(), ".config", "freely", "overlay.pid");
 const CONFIG_DIR = join(homedir(), ".config", "freely");
 const PID_FILE = join(CONFIG_DIR, "daemon.pid");
 
@@ -159,6 +161,22 @@ function ensureDaemon(): void {
   });
   child.unref();
   writePid(child.pid!);
+}
+
+function ensureOverlay(): void {
+  const __filename = fileURLToPath(import.meta.url);
+  const projectRoot = resolve(__filename, "..", "..");
+
+  const appImage = resolve(projectRoot, "bin", "freely_0.1.0_amd64.AppImage");
+
+  if (!fs.existsSync(appImage)) {
+    console.warn("[overlay] Binary not found at " + appImage);
+    return;
+  }
+
+  const child = spawn(appImage, [], { detached: true, stdio: "ignore" });
+  child.unref();
+  fs.writeFileSync(OVERLAY_PID_FILE, String(child.pid!));
 }
 
 async function ensureProvider() {
@@ -230,10 +248,19 @@ program.command("daemon").action(async () => {
   await ensureProvider();
   await ensureCv();
   writePid(process.pid);
+  ensureOverlay();
   await startDaemon();
 });
 
 program.command("stop").description("Stop the background daemon").action(() => {
+  try {
+    const overlayPid = parseInt(fs.readFileSync(OVERLAY_PID_FILE, "utf-8").trim(), 10);
+    if (!isNaN(overlayPid)) {
+      try { process.kill(overlayPid, "SIGTERM"); } catch {}
+    }
+  } catch {}
+  try { fs.unlinkSync(OVERLAY_PID_FILE); } catch {}
+
   const pid = readPid();
   if (pid !== null && isProcessAlive(pid)) {
     process.kill(pid, "SIGTERM");
@@ -335,6 +362,7 @@ if (process.argv.length === 2) {
   await ensureProvider();
   await ensureCv();
   ensureDaemon();
+  ensureOverlay();
   await startInteractiveLoop();
 } else {
   program.parse();
