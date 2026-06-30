@@ -90,6 +90,8 @@ function transcribeFile(filePath: string): void {
     ["-m", WHISPER_MODEL, "-f", filePath, "-ng", "-nt", "--no-timestamps"],
     { timeout: 30000, maxBuffer: 1024 * 1024 },
     (err, stdout) => {
+      fs.unlink(filePath, () => {});
+
       if (err) return;
       const text = stdout.trim();
       if (!text) return;

@@ -20,7 +20,12 @@ function appendMessage(content: string) {
 const eventSource = new EventSource("http://localhost:3001/events");
 
 eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
+  let data;
+  try {
+    data = JSON.parse(event.data);
+  } catch {
+    return;
+  }
 
   if (loader && !loader.classList.contains("hidden")) {
     loader.classList.add("hidden");

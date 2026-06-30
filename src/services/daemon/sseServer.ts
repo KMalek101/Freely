@@ -26,6 +26,10 @@ app.get('/devices', async (c) => {
 });
 
 app.get('/events', (c) => {
+  const allowedOrigins = ['http://localhost:1420', 'tauri://localhost'];
+  const origin = c.req.header('Origin');
+  const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0]!;
+
   return new Response(
     new ReadableStream({
       start(controller) {
@@ -46,7 +50,7 @@ app.get('/events', (c) => {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': allowOrigin,
       },
     }
   );
