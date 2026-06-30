@@ -81,10 +81,10 @@ export async function startDaemon() {
 
 async function handleScreenshotTrigger(args: string[]) {
   try {
-    const path = await takeScreenshot();
+    const screenshotPath = await takeScreenshot();
 
     const question = args[0] || "";
-    for await (const chunk of analyzeScreenshot(path, question)) {
+    for await (const chunk of analyzeScreenshot(screenshotPath, question)) {
       eventBus.emit("message", { type: "ai-chunk", content: chunk });
     }
   } catch (e) {
