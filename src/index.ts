@@ -164,6 +164,11 @@ function ensureDaemon(): void {
 }
 
 function ensureOverlay(): void {
+  try {
+    const overlayPid = parseInt(fs.readFileSync(OVERLAY_PID_FILE, "utf-8").trim(), 10);
+    if (!isNaN(overlayPid) && isProcessAlive(overlayPid)) return;
+  } catch {}
+
   const __filename = fileURLToPath(import.meta.url);
   const projectRoot = resolve(__filename, "..", "..");
 
