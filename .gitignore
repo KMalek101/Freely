@@ -6,3 +6,4 @@ target/
 todo.md
 youtube.md
 bin/
+*.tgz

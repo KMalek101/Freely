@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "bin"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/index.ts",

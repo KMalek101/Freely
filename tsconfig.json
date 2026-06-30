@@ -18,5 +18,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "exclude": ["overlay", "node_modules"]
+  "exclude": ["overlay", "node_modules", "dist"]
 }
