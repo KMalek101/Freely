@@ -16,6 +16,28 @@ function Chat() {
   const [isWaiting, setIsWaiting] = useState(false);
   const { rows } = useWindowSize();
 
+  const streamResponse = async (
+    iterable: AsyncIterable<string>,
+  ) => {
+    let fullContent = "";
+    for await (const chunk of iterable) {
+      fullContent += chunk;
+      setMessages((prev) => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last?.type === "ai") {
+          next[next.length - 1] = {
+            type: "ai" as const,
+            content: fullContent,
+          };
+        } else {
+          next.push({ type: "ai" as const, content: fullContent });
+        }
+        return next;
+      });
+    }
+  };
+
   const handleSubmit = async (value: string) => {
     const trimmed = value.trim();
     if (!trimmed || isWaiting) return;
@@ -46,23 +68,7 @@ function Chat() {
       setIsWaiting(true);
       try {
         const path = await takeScreenshot();
-        let fullContent = "";
-        for await (const chunk of analyzeScreenshot(path, question)) {
-          fullContent += chunk;
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            if (last?.type === "ai") {
-              next[next.length - 1] = {
-                type: "ai" as const,
-                content: fullContent,
-              };
-            } else {
-              next.push({ type: "ai" as const, content: fullContent });
-            }
-            return next;
-          });
-        }
+        await streamResponse(analyzeScreenshot(path, question));
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
         setMessages((prev) => [
@@ -83,23 +89,7 @@ function Chat() {
     setIsWaiting(true);
 
     try {
-      let fullContent = "";
-      for await (const chunk of askAI(trimmed)) {
-        fullContent += chunk;
-        setMessages((prev) => {
-          const next = [...prev];
-          const last = next[next.length - 1];
-          if (last?.type === "ai") {
-            next[next.length - 1] = {
-              type: "ai" as const,
-              content: fullContent,
-            };
-          } else {
-            next.push({ type: "ai" as const, content: fullContent });
-          }
-          return next;
-        });
-      }
+      await streamResponse(askAI(trimmed));
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       setMessages((prev) => [

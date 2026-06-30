@@ -39,9 +39,6 @@ export async function startDaemon() {
 
         const actions: Record<string, (args: string[]) => Promise<void>> = {
           screenshot: handleScreenshotTrigger,
-          "emit-test": async () => {
-            eventBus.emit("message", { type: "message", content: "Hello from CLI" });
-          },
           ask: async (args: string[]) => {
             const question = args.join(" ");
             for await (const chunk of askAI(question)) {

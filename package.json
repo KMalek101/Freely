@@ -1,12 +1,20 @@
 {
   "name": "freely",
   "version": "1.0.0",
-  "description": "",
+  "description": "Terminal based AI screen assistant with voice transcription and overlay",
   "main": "dist/index.js",
   "files": [
     "dist",
     "bin"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KMalek101/freely.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KMalek101/freely/issues"
+  },
+  "homepage": "https://github.com/KMalek101/freely#readme",
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/index.ts",
@@ -22,17 +30,15 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",
     "@clack/prompts": "^1.6.0",
     "@google/generative-ai": "^0.24.1",
     "@hono/node-server": "^2.0.6",
-    "@inkjs/ui": "^2.0.0",
     "@tauri-apps/cli": "^2.11.3",
     "chalk": "^5.6.2",
-    "cli-markdown": "^3.5.1",
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "hono": "^4.12.27",
@@ -40,7 +46,6 @@
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
     "marked": "^15.0.12",
-    "marked-terminal": "^7.3.0",
     "nodejs-whisper": "^0.3.0",
     "openai": "^6.45.0",
     "pdf-parse": "^1.1.1"
