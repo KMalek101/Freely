@@ -14,8 +14,7 @@
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-hover: rgba(255, 255, 255, 0.12);
   --divider: rgba(255, 255, 255, 0.06);
-  --accent-green: #34d399;
-  --accent-green-glow: rgba(52, 211, 153, 0.4);
+  --accent-orange: #FFB347;
   --radius-lg: 20px;
   --radius-md: 12px;
   --radius-sm: 8px;
@@ -131,7 +130,7 @@ html, body {
 
 .header-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.015em;
   color: var(--text-primary);
 }
@@ -219,7 +218,7 @@ html, body {
   height: 14px;
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.06);
-  border-top-color: rgba(255, 255, 255, 0.5);
+  border-top-color: var(--accent-orange);
   animation: spin 0.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   flex-shrink: 0;
 }
@@ -287,19 +286,19 @@ html, body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-green);
-  box-shadow: 0 0 6px var(--accent-green-glow);
+  background: var(--accent-orange);
+  box-shadow: 0 0 6px rgba(255, 179, 71, 0.4);
   animation: pulse-dot 2.5s ease-in-out infinite;
   flex-shrink: 0;
 }
 
 @keyframes pulse-dot {
   0%, 100% {
-    box-shadow: 0 0 4px var(--accent-green-glow);
+    box-shadow: 0 0 4px rgba(255, 179, 71, 0.4);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 8px var(--accent-green-glow);
+    box-shadow: 0 0 8px rgba(255, 179, 71, 0.4);
     transform: scale(1.1);
   }
 }
