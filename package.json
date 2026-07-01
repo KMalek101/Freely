@@ -23,7 +23,8 @@
     "ask": "tsx src/index.ts ask",
     "screenshot": "tsx src/index.ts screenshot",
     "daemon": "tsx src/index.ts daemon",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "postinstall": "node scripts/postinstall.js"
   },
   "bin": {
     "freely": "./dist/index.js"
