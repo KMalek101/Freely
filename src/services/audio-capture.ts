@@ -9,7 +9,7 @@ import { askAI } from "./ai.js";
 import { eventBus } from "./daemon/sseServer.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
 import { RmsVad } from "./vad.js";
-import pdfParse from "pdf-parse";
+import { loadCvContext, buildSystemPrompt } from "./cv.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "../..");
@@ -111,9 +111,7 @@ function resetTurnTimer(): void {
     currentTurn = "";
     turnTimer = null;
     if (!text) return;
-    const prompt = cvContext
-      ? `The user has provided the following background about themselves:\n\n${cvContext}\n\n===\n\n${SYSTEM_PROMPT}`
-      : SYSTEM_PROMPT;
+    const prompt = buildSystemPrompt(cvContext, SYSTEM_PROMPT);
     try {
       for await (const chunk of askAI(text, prompt)) {
         eventBus.emit("message", { type: "ai-chunk", content: chunk });
@@ -253,17 +251,9 @@ export async function startAudioCapture(): Promise<void> {
     );
   }
 
-  const configDir = path.join(os.homedir(), ".config", "freely");
-  const cvTxtPath = path.join(configDir, "cv.txt");
-  const cvPdfPath = path.join(configDir, "cv.pdf");
-  if (fs.existsSync(cvTxtPath)) {
-    cvContext = await readFile(cvTxtPath, "utf-8");
-    console.log("[cv] loaded cv.txt");
-  } else if (fs.existsSync(cvPdfPath)) {
-    const buf = await readFile(cvPdfPath);
-    const parsed = await pdfParse(buf);
-    cvContext = parsed.text;
-    console.log("[cv] loaded cv.pdf");
+  cvContext = await loadCvContext();
+  if (cvContext) {
+    console.log("[cv] loaded background context");
   } else {
     console.log(
       "[cv] No cv.txt or cv.pdf found in ~/.config/freely/.\n      Drop one there to inject your background into the AI context.",

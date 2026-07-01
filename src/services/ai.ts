@@ -51,14 +51,18 @@ async function* analyzeGemini(
   model: string,
   imagePath: string,
   question?: string,
+  extraSystemPrompt?: string,
 ) {
   const genAI = new GoogleGenerativeAI(apiKey);
   const m = genAI.getGenerativeModel({ model });
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString("base64");
-  const systemPrompt = getSystemPrompt(question);
+  const basePrompt = getSystemPrompt(question);
+  const finalPrompt = extraSystemPrompt
+    ? `${extraSystemPrompt}\n\n${basePrompt}`
+    : basePrompt;
   const result = await m.generateContentStream([
-    systemPrompt,
+    finalPrompt,
     { inlineData: { data: base64Image, mimeType: "image/png" } },
   ]);
   for await (const chunk of result.stream) {
@@ -97,15 +101,19 @@ async function* analyzeAnthropic(
   model: string,
   imagePath: string,
   question?: string,
+  extraSystemPrompt?: string,
 ) {
   const client = new Anthropic({ apiKey });
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString("base64");
-  const systemPrompt = getSystemPrompt(question);
+  const basePrompt = getSystemPrompt(question);
+  const finalPrompt = extraSystemPrompt
+    ? `${extraSystemPrompt}\n\n${basePrompt}`
+    : basePrompt;
   const stream = await client.messages.create({
     model,
     max_tokens: 4096,
-    ...(systemPrompt ? { system: systemPrompt } : {}),
+    ...(finalPrompt ? { system: finalPrompt } : {}),
     messages: [
       {
         role: "user",
@@ -164,13 +172,17 @@ async function* analyzeOpenAI(
   model: string,
   imagePath: string,
   question?: string,
+  extraSystemPrompt?: string,
 ) {
   const client = new OpenAI({ apiKey });
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString("base64");
-  const systemPrompt = getSystemPrompt(question);
+  const basePrompt = getSystemPrompt(question);
+  const finalPrompt = extraSystemPrompt
+    ? `${extraSystemPrompt}\n\n${basePrompt}`
+    : basePrompt;
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt },
+    { role: "system", content: finalPrompt },
     {
       role: "user",
       content: [
@@ -215,17 +227,18 @@ export async function* askAI(question: string, systemPrompt?: string) {
 export async function* analyzeScreenshot(
   imagePath: string,
   question?: string,
+  extraSystemPrompt?: string,
 ) {
   const cfg = await getConfig();
   switch (cfg.provider) {
     case "gemini":
-      yield* analyzeGemini(cfg.apiKey, cfg.model, imagePath, question);
+      yield* analyzeGemini(cfg.apiKey, cfg.model, imagePath, question, extraSystemPrompt);
       break;
     case "anthropic":
-      yield* analyzeAnthropic(cfg.apiKey, cfg.model, imagePath, question);
+      yield* analyzeAnthropic(cfg.apiKey, cfg.model, imagePath, question, extraSystemPrompt);
       break;
     case "openai":
-      yield* analyzeOpenAI(cfg.apiKey, cfg.model, imagePath, question);
+      yield* analyzeOpenAI(cfg.apiKey, cfg.model, imagePath, question, extraSystemPrompt);
       break;
     default:
       throw new Error(`Unknown provider: ${cfg.provider}`);

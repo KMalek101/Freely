@@ -4,6 +4,10 @@ import Spinner from "ink-spinner";
 import TextInput from "ink-text-input";
 import { askAI, analyzeScreenshot } from "../services/ai.js";
 import { takeScreenshot } from "../services/screenshot.js";
+import { loadCvContext, buildSystemPrompt } from "../services/cv.js";
+import { SYSTEM_PROMPT } from "../services/prompts.js";
+
+let cvContext: string | undefined;
 
 type Message =
   | { type: "user"; content: string }
@@ -38,6 +42,8 @@ function Chat() {
     }
   };
 
+  const getPrompt = () => buildSystemPrompt(cvContext ?? "", SYSTEM_PROMPT);
+
   const handleSubmit = async (value: string) => {
     const trimmed = value.trim();
     if (!trimmed || isWaiting) return;
@@ -68,7 +74,7 @@ function Chat() {
       setIsWaiting(true);
       try {
         const path = await takeScreenshot();
-        await streamResponse(analyzeScreenshot(path, question));
+        await streamResponse(analyzeScreenshot(path, question, getPrompt()));
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);
         setMessages((prev) => [
@@ -89,7 +95,7 @@ function Chat() {
     setIsWaiting(true);
 
     try {
-      await streamResponse(askAI(trimmed));
+      await streamResponse(askAI(trimmed, getPrompt()));
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       setMessages((prev) => [
@@ -158,6 +164,8 @@ function Chat() {
 }
 
 export async function startInteractiveLoop() {
+  cvContext = await loadCvContext();
+
   process.stdout.write("\x1b[?1049h");
   process.stdout.write("\x1b[2J\x1b[H");
 

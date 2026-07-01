@@ -3,11 +3,12 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { takeScreenshot } from "../screenshot.js";
-import { analyzeScreenshot } from "../ai.js";
+import { analyzeScreenshot, askAI } from "../ai.js";
 
 import { startSseServer, eventBus } from "./sseServer.js";
-import { askAI } from "../ai.js";
 import { startAudioCapture, stopAudioCapture } from "../audio-capture.js";
+import { loadCvContext, buildSystemPrompt } from "../cv.js";
+import { SYSTEM_PROMPT } from "../prompts.js";
 
 const SOCKET_PATH =
   process.platform === "win32"
@@ -31,6 +32,8 @@ export async function startDaemon() {
     fs.unlinkSync(SOCKET_PATH);
   }
 
+  const cvContext = await loadCvContext();
+
   const server = net.createServer((socket) => {
     socket.on("data", async (data) => {
       try {
@@ -38,10 +41,11 @@ export async function startDaemon() {
         console.log("Received command:", message);
 
         const actions: Record<string, (args: string[]) => Promise<void>> = {
-          screenshot: handleScreenshotTrigger,
+          screenshot: (args) => handleScreenshotTrigger(args, cvContext),
           ask: async (args: string[]) => {
             const question = args.join(" ");
-            for await (const chunk of askAI(question)) {
+            const prompt = buildSystemPrompt(cvContext, SYSTEM_PROMPT);
+            for await (const chunk of askAI(question, prompt)) {
               eventBus.emit("message", { type: "ai-chunk", content: chunk });
             }
           },
@@ -76,12 +80,13 @@ export async function startDaemon() {
   });
 }
 
-async function handleScreenshotTrigger(args: string[]) {
+async function handleScreenshotTrigger(args: string[], cvContext: string) {
   try {
     const screenshotPath = await takeScreenshot();
 
     const question = args[0] || "";
-    for await (const chunk of analyzeScreenshot(screenshotPath, question)) {
+    const prompt = buildSystemPrompt(cvContext, SYSTEM_PROMPT);
+    for await (const chunk of analyzeScreenshot(screenshotPath, question, prompt)) {
       eventBus.emit("message", { type: "ai-chunk", content: chunk });
     }
   } catch (e) {
