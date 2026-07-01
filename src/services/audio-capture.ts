@@ -21,21 +21,8 @@ const HELPER_BINARY = path.join(
   "audio-capture-helper",
 );
 
-const WHISPER_CLI = path.join(
-  PROJECT_ROOT,
-  "node_modules",
-  "nodejs-whisper",
-  "cpp",
-  "whisper.cpp",
-  "build",
-  "bin",
-  "whisper-cli",
-);
-const WHISPER_MODEL = path.join(
-  os.homedir(),
-  ".whisper-models",
-  "ggml-tiny.en.bin",
-);
+const WHISPER_CLI = path.join(os.homedir(), ".config", "freely", "bin", "whisper");
+const WHISPER_MODEL = path.join(os.homedir(), ".config", "freely", "models", "ggml-tiny.en.bin");
 
 const SAMPLE_RATE = 16000;
 const CHANNELS = 1;

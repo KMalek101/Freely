@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import pdfParse from "pdf-parse";
+import pdfParse from "pdf-parse-debugging-disabled";
 
 const CV_TXT = join(homedir(), ".config", "freely", "cv.txt");
 const CV_PDF = join(homedir(), ".config", "freely", "cv.pdf");

@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { homedir, platform, arch } from "os";
 
-const REPO = "KMalek101/freely"; 
+const REPO = "KMalek101/Freely"; 
 const RELEASE_TAG = "v1.0.0";
 const MODEL_URL =
   "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin";
