@@ -3,7 +3,6 @@ node_modules
 dist/
 screenshots
 target/
-todo.md
-youtube.md
 bin/
+secrets/
 *.tgz
