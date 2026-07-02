@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "files": [
     "dist",
-    "bin"
+    "scripts"
   ],
   "repository": {
     "type": "git",
@@ -27,12 +27,15 @@
     "postinstall": "node scripts/postInstall.js"
   },
   "bin": {
-    "freely": "./dist/index.js"
+    "freely": "dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",
     "@clack/prompts": "^1.6.0",

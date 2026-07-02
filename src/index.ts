@@ -7,7 +7,7 @@ import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import fs from "fs";
 import { homedir } from "os";
 import { join, resolve, extname } from "path";
-import { fileURLToPath } from "url";
+
 import { startInteractiveLoop } from "./interactive/loop.js";
 import { startDaemon } from "./services/daemon/server.js";
 import { takeScreenshot } from "./services/screenshot.js";
@@ -169,10 +169,7 @@ function ensureOverlay(): void {
     if (!isNaN(overlayPid) && isProcessAlive(overlayPid)) return;
   } catch {}
 
-  const __filename = fileURLToPath(import.meta.url);
-  const projectRoot = resolve(__filename, "..", "..");
-
-  const appImage = resolve(projectRoot, "bin", "freely_0.1.0_amd64.AppImage");
+  const appImage = join(homedir(), ".config", "freely", "bin", "freely-overlay.AppImage");
 
   if (!fs.existsSync(appImage)) {
     console.warn("[overlay] Binary not found at " + appImage);

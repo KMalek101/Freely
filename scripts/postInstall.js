@@ -95,6 +95,24 @@ async function setup() {
     }
   }
 
+  // --- overlay binary (linux only) --- windows very soon
+  const OVERLAY_PATH = path.join(BIN_DIR, "freely-overlay.AppImage");
+  if (fs.existsSync(OVERLAY_PATH)) {
+    console.log("✅ overlay binary already present, skipping.");
+  } else if (key !== "linux-x64") {
+    console.log("⏭️  Skipping overlay binary (not linux-x64).");
+  } else {
+    const overlayUrl = `https://github.com/${REPO}/releases/download/${RELEASE_TAG}/freely-overlay-linux-x86_64.AppImage`;
+    console.log("📥 Downloading overlay binary...");
+    try {
+      await download(overlayUrl, OVERLAY_PATH, "overlay");
+      fs.chmodSync(OVERLAY_PATH, 0o755);
+      console.log("✅ overlay binary ready.");
+    } catch (e) {
+      console.warn(`⚠️  Could not download overlay binary: ${e.message}`);
+    }
+  }
+
   // --- tiny.en model ---
   if (fs.existsSync(MODEL_PATH)) {
     console.log("✅ tiny.en model already present, skipping.");
