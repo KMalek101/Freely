@@ -3,44 +3,339 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Freely</title>
-    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Freely — Answer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      .overlay {
+        width: 100vw;
+        height: 100vh;
+        background: rgba(30, 30, 30, 0.88);
+        border-radius: 18px;
+        border: 0.5px solid #2e2e2e;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 0.5px solid #2a2a2a;
+        cursor: grab;
+        -webkit-app-region: drag;
+      }
+
+      .titlebar-right {
+        -webkit-app-region: no-drag;
+      }
+
+      .resize-handle {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 16px;
+        height: 16px;
+        cursor: se-resize;
+        z-index: 10;
+      }
+
+      .resize-handle::after {
+        content: '';
+        position: absolute;
+        right: 3px;
+        bottom: 3px;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid #555;
+        border-bottom: 2px solid #555;
+      }
+
+      .titlebar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .titlebar-left span {
+        color: #e8e8e8;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      .titlebar-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .titlebar-right button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #555;
+        font-size: 16px;
+        line-height: 1;
+        padding: 2px 5px;
+        transition: color 0.15s;
+      }
+
+      .titlebar-right button:hover {
+        color: #aaa;
+      }
+
+      .body {
+        flex: 1;
+        padding: 24px 26px 28px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .assistant-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .assistant-label span {
+        color: #e8a44a;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        font-size: 10px;
+        line-height: 1.5;
+        color: #ccc;
+        scroll-behavior: smooth;
+      }
+
+      .messages:empty {
+        display: none;
+      }
+
+      .message-entry {
+        animation: messageIn 0.3s ease-out;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .message-entry p { margin: 0; display: inline; }
+      .message-entry br { content: ''; display: block; margin: 0; }
+      .message-entry code {
+        background: rgba(255,255,255,0.06);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 9px;
+      }
+      .message-entry pre {
+        background: rgba(0,0,0,0.3);
+        padding: 8px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 2px 0;
+      }
+      .message-entry pre code {
+        background: none;
+        padding: 0;
+        font-size: 9px;
+      }
+      .message-entry ul, .message-entry ol {
+        padding-left: 18px;
+        margin: 2px 0;
+        list-style: none;
+      }
+      .message-entry ul li, .message-entry ol li {
+        position: relative;
+        padding-left: 10px;
+        margin: 0;
+      }
+      .message-entry ul li::before {
+        content: '•';
+        color: #E8A44A;
+        position: absolute;
+        left: -8px;
+        font-size: 14px;
+        line-height: 1.3;
+      }
+      .message-entry ol { counter-reset: list-counter; }
+      .message-entry ol li { counter-increment: list-counter; }
+      .message-entry ol li::before {
+        content: counter(list-counter) '.';
+        color: #E8A44A;
+        position: absolute;
+        left: -18px;
+        font-size: 11px;
+      }
+      .message-entry strong { color: #E8A44A; }
+      .message-entry a { color: #E8A44A; }
+      .message-entry h1, .message-entry h2, .message-entry h3,
+      .message-entry h4 { color: #E8A44A; margin: 2px 0; font-size: 11px; }
+
+      @keyframes messageIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      .connection-lost {
+        color: #555;
+        font-style: italic;
+      }
+    </style>
   </head>
   <body>
-    <div class="glass">
-      <header class="header" data-tauri-drag-region>
-        <div class="header-left" data-tauri-drag-region>
-          <svg class="header-logo" viewBox="0 0 24 24" fill="none">
+    <div class="overlay">
+      <div class="titlebar" data-tauri-drag-region>
+        <div class="titlebar-left">
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
             <path
-              d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
-              fill="var(--accent-orange)"
+              d="M8 0L9.2 5.8L14.9 4.1L11.2 8.6L14.9 11.9L9.2 10.2L8 16L6.8 10.2L1.1 11.9L4.8 8.6L1.1 4.1L6.8 5.8Z"
+              fill="#E8A44A"
             />
           </svg>
-          <span class="header-title">freely</span>
+          <span>freely</span>
         </div>
-        <div class="header-actions">
-          <button id="minBtn" class="header-btn minimize" aria-label="Minimize">
-            &minus;
-          </button>
-          <button id="closeBtn" class="header-btn close" aria-label="Close">
-            &times;
-          </button>
+        <div class="titlebar-right">
+          <button id="minBtn" aria-label="Minimize">—</button>
+          <button id="closeBtn" aria-label="Close">✕</button>
         </div>
-      </header>
-
-      <div class="divider"></div>
-
-      <div id="loader" class="status-row">
-        <div class="spinner"></div>
-        <span class="status-text">Waiting for text&hellip;</span>
       </div>
 
-      <div id="messages" class="messages"></div>
+      <div class="body">
+        <div class="assistant-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 0L9.2 5.8L14.9 4.1L11.2 8.6L14.9 11.9L9.2 10.2L8 16L6.8 10.2L1.1 11.9L4.8 8.6L1.1 4.1L6.8 5.8Z" fill="#E8A44A"/>
+          </svg>
+          <span>Assistant</span>
+        </div>
 
-      <div class="divider"></div>
-
-      <footer class="footer"></footer>
+        <div id="messages" class="messages"></div>
+      </div>
+      <div class="resize-handle"></div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
+
+    <script type="module">
+      import { marked } from 'marked';
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const tauri = window.__TAURI__;
+        if (!tauri) return;
+        const win = tauri.window.getCurrentWindow();
+
+        document.getElementById("minBtn")?.addEventListener("click", () => win.minimize());
+        document.getElementById("closeBtn")?.addEventListener("click", () => win.close());
+
+        const handle = document.querySelector(".resize-handle");
+        if (handle) {
+          let dragging = false, sx, sy, sw, sh;
+          handle.addEventListener("mousedown", (e) => {
+            dragging = true;
+            sx = e.clientX;
+            sy = e.clientY;
+            Promise.all([win.outerSize(), win.outerPosition()]).then(([size]) => {
+              sw = size.width;
+              sh = size.height;
+            });
+          });
+          document.addEventListener("mousemove", (e) => {
+            if (!dragging) return;
+            const w = Math.max(200, sw + e.clientX - sx);
+            const h = Math.max(200, sh + e.clientY - sy);
+            win.setSize(new tauri.window.PhysicalSize(w, h));
+          });
+          document.addEventListener("mouseup", () => { dragging = false; });
+        }
+
+        const messages = document.getElementById("messages");
+        if (!messages) return;
+
+        let currentMsg = "";
+        let currentEntry = null;
+
+        function renderMessage() {
+          if (!currentEntry) return;
+          let html = marked.parse(currentMsg);
+          html = html.replace(/<\/p>\s*<p>/g, '<br>').replace(/^<p>|<\/p>$/g, '');
+          currentEntry.innerHTML = html;
+          messages.scrollTop = messages.scrollHeight;
+        }
+
+        function startMessage() {
+          currentMsg = "";
+          currentEntry = document.createElement("div");
+          currentEntry.className = "message-entry";
+          messages.appendChild(currentEntry);
+        }
+
+        function finishMessage() {
+          if (!currentEntry) return;
+          renderMessage();
+          currentMsg = "";
+          currentEntry = null;
+        }
+
+        setTimeout(() => {
+          currentMsg = "**Markdown test:** `inline code`\n\n```\ncode block\n```\n\n- list item\n\n*italic*";
+          startMessage();
+          renderMessage();
+          finishMessage();
+        }, 2000);
+
+        const eventSource = new EventSource("http://localhost:3001/events");
+
+        eventSource.onmessage = (event) => {
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+
+          if (data.type === "ai-chunk") {
+            if (!currentEntry) startMessage();
+            currentMsg += data.content;
+            renderMessage();
+          } else if (data.type === "ai-done") {
+            finishMessage();
+          }
+        };
+
+        eventSource.onerror = () => {
+          currentMsg = "[Connection lost]";
+          startMessage();
+          renderMessage();
+          finishMessage();
+        };
+      });
+    </script>
   </body>
 </html>

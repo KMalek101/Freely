@@ -1,46 +1,342 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Freely Panel</title>
-    <link rel="stylesheet" href="/src/styles.css" />
-  </head>
-  <body>
-    <div class="glass-panel">
-      <header class="header" data-tauri-drag-region>
-        <div class="header-left" data-tauri-drag-region>
-          <svg class="header-logo" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
-              fill="var(--accent-orange)"
-            />
-          </svg>
-          <span class="header-title">freely</span>
-          <span class="header-subtitle">listening</span>
-        </div>
-        <div class="header-actions">
-          <button
-            id="panelMinBtn"
-            class="header-btn minimize"
-            aria-label="Minimize"
-          >
-            &minus;
-          </button>
-          <button
-            id="panelCloseBtn"
-            class="header-btn close"
-            aria-label="Close"
-          >
-            &times;
-          </button>
-        </div>
-      </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freely — Listening</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-      <div class="divider"></div>
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-user-select: none;
+      user-select: none;
+    }
 
+    .overlay {
+      width: 100vw;
+      height: 100vh;
+      background: #1e1e1e;
+      border-radius: 18px;
+      border: 0.5px solid #2e2e2e;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 0.5px solid #2a2a2a;
+      cursor: grab;
+      -webkit-app-region: drag;
+    }
+
+    .titlebar-right {
+      -webkit-app-region: no-drag;
+    }
+
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 16px;
+      height: 16px;
+      cursor: se-resize;
+      z-index: 10;
+    }
+
+    .resize-handle::after {
+      content: '';
+      position: absolute;
+      right: 3px;
+      bottom: 3px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid #555;
+      border-bottom: 2px solid #555;
+    }
+
+    .titlebar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .titlebar-left span {
+      color: #e8e8e8;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .titlebar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .titlebar-right button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #555;
+      font-size: 16px;
+      line-height: 1;
+      padding: 2px 5px;
+      transition: color 0.15s;
+    }
+
+    .titlebar-right button:hover { color: #aaa; }
+
+    .body {
+      flex: 1;
+      padding: 28px 26px 32px;
+      overflow-y: auto;
+    }
+
+    /* Waveform row */
+    .waveform-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #E8A44A;
+      flex-shrink: 0;
+    }
+
+    .bars {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 32px;
+    }
+
+    .bar {
+      width: 3px;
+      background: #E8A44A;
+      border-radius: 2px;
+      animation: wave 1.1s ease-in-out infinite;
+    }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.35); }
+      50%       { transform: scaleY(1); }
+    }
+
+    .listening-label {
+      text-align: center;
+      color: #E8A44A;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      margin-bottom: 24px;
+    }
+
+    /* Transcript */
+    .divider {
+      border: none;
+      border-top: 0.5px solid #2a2a2a;
+      margin-bottom: 20px;
+    }
+
+    .transcript-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .transcript-text {
+      color: #ccc;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .transcript-text .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 14px;
+      background: #E8A44A;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    .transcripts {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.65;
+      color: #ccc;
+      scroll-behavior: smooth;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .transcripts:empty::after {
+      content: 'Waiting for speech...';
+      display: block;
+      color: #555;
+      font-style: italic;
+      font-size: 12px;
+      padding: 8px 0;
+    }
+
+    .transcript-entry {
+      animation: messageIn 0.3s ease-out;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #e8e8e8;
+    }
+
+    @keyframes messageIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .connection-lost {
+      color: #555;
+      font-style: italic;
+      font-size: 12px;
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+
+    <div class="titlebar" data-tauri-drag-region>
+      <div class="titlebar-left">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 0L9.2 5.8L14.9 4.1L11.2 8.6L14.9 11.9L9.2 10.2L8 16L6.8 10.2L1.1 11.9L4.8 8.6L1.1 4.1L6.8 5.8Z" fill="#E8A44A"/>
+        </svg>
+        <span>freely</span>
+      </div>
+      <div class="titlebar-right">
+        <button id="panelMinBtn" aria-label="Minimize">—</button>
+        <button id="panelCloseBtn" aria-label="Close">✕</button>
+      </div>
+    </div>
+
+    <div class="body">
+      <!-- Waveform -->
+      <div class="waveform-row">
+        <div class="dot"></div>
+        <div class="bars">
+          <div class="bar" style="height:14px; animation-delay:0.00s"></div>
+          <div class="bar" style="height:22px; animation-delay:0.10s"></div>
+          <div class="bar" style="height:28px; animation-delay:0.20s"></div>
+          <div class="bar" style="height:20px; animation-delay:0.15s"></div>
+          <div class="bar" style="height:30px; animation-delay:0.30s"></div>
+          <div class="bar" style="height:24px; animation-delay:0.05s"></div>
+          <div class="bar" style="height:18px; animation-delay:0.25s"></div>
+          <div class="bar" style="height:26px; animation-delay:0.35s"></div>
+          <div class="bar" style="height:14px; animation-delay:0.10s"></div>
+          <div class="bar" style="height:10px; animation-delay:0.20s"></div>
+          <div class="bar" style="height:20px; animation-delay:0.40s"></div>
+          <div class="bar" style="height:12px; animation-delay:0.15s"></div>
+          <div class="bar" style="height:8px;  animation-delay:0.05s"></div>
+        </div>
+      </div>
+
+      <p class="listening-label">Listening...</p>
+
+      <hr class="divider" />
+
+      <!-- Transcript -->
+      <p class="transcript-label">Transcript</p>
       <div id="transcripts" class="transcripts"></div>
     </div>
-    <script type="module" src="/src/panel.ts"></script>
-  </body>
+
+    <div class="resize-handle"></div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const tauri = window.__TAURI__;
+      if (!tauri) return;
+      const win = tauri.window.getCurrentWindow();
+
+      document.getElementById("panelMinBtn")?.addEventListener("click", () => win.minimize());
+      document.getElementById("panelCloseBtn")?.addEventListener("click", () => win.close());
+
+      const handle = document.querySelector(".resize-handle");
+      if (handle) {
+        let dragging = false, sx, sy, sw, sh;
+        handle.addEventListener("mousedown", (e) => {
+          dragging = true;
+          sx = e.clientX;
+          sy = e.clientY;
+          Promise.all([win.outerSize(), win.outerPosition()]).then(([size]) => {
+            sw = size.width;
+            sh = size.height;
+          });
+        });
+        document.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const w = Math.max(200, sw + e.clientX - sx);
+          const h = Math.max(200, sh + e.clientY - sy);
+          win.setSize(new tauri.window.PhysicalSize(w, h));
+        });
+        document.addEventListener("mouseup", () => { dragging = false; });
+      }
+
+      const transcripts = document.getElementById("transcripts");
+      if (!transcripts) return;
+
+      function appendTranscript(content) {
+        const entry = document.createElement("div");
+        entry.className = "transcript-entry";
+        entry.textContent = content;
+        transcripts.appendChild(entry);
+        transcripts.scrollTop = transcripts.scrollHeight;
+      }
+
+      const eventSource = new EventSource("http://localhost:3001/events");
+
+      eventSource.onmessage = (event) => {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (data.type === "transcript") {
+          appendTranscript(data.content);
+        }
+      };
+
+      eventSource.onerror = () => {
+        appendTranscript("[Connection lost]");
+      };
+    });
+  </script>
+</body>
 </html>

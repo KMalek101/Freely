@@ -48,6 +48,7 @@ export async function startDaemon() {
             for await (const chunk of askAI(question, prompt)) {
               eventBus.emit("message", { type: "ai-chunk", content: chunk });
             }
+            eventBus.emit("message", { type: "ai-done" });
           },
         };
 
