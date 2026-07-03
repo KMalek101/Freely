@@ -22,7 +22,7 @@
       .overlay {
         width: 100vw;
         height: 100vh;
-        background: #1e1e1e;
+        background: rgba(30, 30, 30, 0.8);
         border-radius: 18px;
         border: 0.5px solid #2e2e2e;
         overflow: hidden;
@@ -112,7 +112,10 @@
         line-height: 1.5;
         color: #ccc;
         scroll-behavior: smooth;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
       }
+      .messages::-webkit-scrollbar { display: none; }
 
       .messages:empty { display: none; }
 
