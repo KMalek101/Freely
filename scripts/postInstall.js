@@ -3,8 +3,9 @@ import https from "https";
 import fs from "fs";
 import path from "path";
 import { homedir, platform, arch } from "os";
+import { execSync } from "child_process";
 
-const REPO = "KMalek101/Freely"; 
+const REPO = "KMalek101/Freely";
 const RELEASE_TAG = "v1.0.0";
 const MODEL_URL =
   "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin";
@@ -18,7 +19,25 @@ const PLATFORM_MAP = {
 const key = `${platform()}-${arch()}`;
 const binaryName = PLATFORM_MAP[key];
 
-const FREELY_DIR = path.join(homedir(), ".config", "freely");
+function getRealHome() {
+  if (process.env.SUDO_USER) {
+    try {
+      // getent reads the actual passwd entry — works on any Linux distro
+      const home = execSync(`getent passwd ${process.env.SUDO_USER}`)
+        .toString()
+        .trim()
+        .split(":")[5];
+      if (home) return home;
+    } catch {}
+    // Fallback for macOS (no getent)
+    return platform() === "darwin"
+      ? path.join("/Users", process.env.SUDO_USER)
+      : path.join("/home", process.env.SUDO_USER);
+  }
+  return homedir();
+}
+
+const FREELY_DIR = path.join(getRealHome(), ".config", "freely");
 const BIN_DIR = path.join(FREELY_DIR, "bin");
 const MODEL_DIR = path.join(FREELY_DIR, "models");
 const BIN_PATH = path.join(BIN_DIR, "whisper");
@@ -36,32 +55,34 @@ function download(url, destPath, label) {
     let total = 0;
 
     const makeRequest = (url) => {
-      https.get(url, (res) => {
-        if (res.statusCode === 301 || res.statusCode === 302) {
-          return makeRequest(res.headers.location);
-        }
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode} for ${url}`));
-          return;
-        }
-
-        total = parseInt(res.headers["content-length"] || "0", 10);
-
-        res.on("data", (chunk) => {
-          downloaded += chunk.length;
-          if (total) {
-            const pct = ((downloaded / total) * 100).toFixed(1);
-            process.stdout.write(`\r  ${label}: ${pct}%`);
+      https
+        .get(url, (res) => {
+          if (res.statusCode === 301 || res.statusCode === 302) {
+            return makeRequest(res.headers.location);
           }
-        });
+          if (res.statusCode !== 200) {
+            reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+            return;
+          }
 
-        res.pipe(file);
-        res.on("end", () => {
-          process.stdout.write("\n");
-          resolve();
-        });
-        res.on("error", reject);
-      }).on("error", reject);
+          total = parseInt(res.headers["content-length"] || "0", 10);
+
+          res.on("data", (chunk) => {
+            downloaded += chunk.length;
+            if (total) {
+              const pct = ((downloaded / total) * 100).toFixed(1);
+              process.stdout.write(`\r  ${label}: ${pct}%`);
+            }
+          });
+
+          res.pipe(file);
+          res.on("end", () => {
+            process.stdout.write("\n");
+            resolve();
+          });
+          res.on("error", reject);
+        })
+        .on("error", reject);
     };
 
     makeRequest(url);
@@ -72,7 +93,9 @@ function download(url, destPath, label) {
 async function setup() {
   if (!binaryName) {
     console.error(`❌ Unsupported platform: ${key}`);
-    console.error(`   Freely currently supports: ${Object.keys(PLATFORM_MAP).join(", ")}`);
+    console.error(
+      `   Freely currently supports: ${Object.keys(PLATFORM_MAP).join(", ")}`,
+    );
     process.exit(1);
   }
 
