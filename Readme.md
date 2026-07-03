@@ -13,7 +13,7 @@
   &nbsp;
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen" alt="Node"></a>
   &nbsp;
-  <a href="https://github.com/KMalek101/Freely"><img src="https://img.shields.io/badge/platform-linux%20%7C%20macOS-blue" alt="Platform"></a>
+  <a href="https://github.com/KMalek101/Freely"><img src="https://img.shields.io/badge/platform-linux%20%7C%20windows-blue" alt="Platform"></a>
 </p>
 
 ---
