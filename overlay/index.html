@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Freely — Answer</title>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
 
       html, body {
         width: 100%;
@@ -26,7 +22,7 @@
       .overlay {
         width: 100vw;
         height: 100vh;
-        background: rgba(30, 30, 30, 0.88);
+        background: #1e1e1e;
         border-radius: 18px;
         border: 0.5px solid #2e2e2e;
         overflow: hidden;
@@ -73,7 +69,7 @@
       .titlebar-left {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 2px;
       }
 
       .titlebar-left span {
@@ -99,47 +95,114 @@
         transition: color 0.15s;
       }
 
-      .titlebar-right button:hover {
-        color: #aaa;
-      }
+      .titlebar-right button:hover { color: #aaa; }
 
       .body {
         flex: 1;
-        padding: 24px 26px 28px;
-        overflow-y: auto;
+        padding: 28px 26px 0;
         display: flex;
         flex-direction: column;
-      }
-
-      .assistant-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 14px;
-      }
-
-      .assistant-label span {
-        color: #e8a44a;
-        font-size: 14px;
-        font-weight: 500;
+        overflow: hidden;
       }
 
       .messages {
         flex: 1;
         overflow-y: auto;
-        font-size: 10px;
+        font-size: 9px;
         line-height: 1.5;
         color: #ccc;
         scroll-behavior: smooth;
       }
 
-      .messages:empty {
-        display: none;
+      .messages:empty { display: none; }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 10px 20px;
+        border-top: 0.5px solid #2a2a2a;
+        gap: 8px;
+      }
+
+      .copy-btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: transparent;
+        border: 0.5px solid #2a2a2a;
+        color: #fff;
+        font-size: 10px;
+        font-family: inherit;
+        padding: 4px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .copy-btn:hover {
+        background: rgba(255,255,255,0.06);
+      }
+
+      .copy-btn.copied {
+        border-color: rgba(76, 175, 80, 0.5);
+        color: #76c77a;
+      }
+
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        text-align: center;
+        height: 100%;
+        min-height: 150px;
+      }
+
+      .empty-state img {
+        width: 80px;
+        height: 80px;
+        opacity: 0.45;
+        margin-bottom: 10px;
+      }
+
+      .empty-state .sub {
+        color: #fff;
+        font-size: 10px;
+        line-height: 1.5;
+        max-width: 200px;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        opacity: 0.4;
+      }
+
+      .empty-state img {
+        width: 80px;
+        height: 40px;
+        opacity: 0.5;
+        margin-bottom: 20px;
+        margin-left: -30px;
+      }
+
+      .empty-state .title {
+        color: #fff;
+        font-size: 9px;
+        font-weight: 600;
+        line-height: 1.4;
+      }
+
+      .empty-state .sub {
+        color: #c4c4c4;
+        font-size: 8px;
+        line-height: 1.5;
+        max-width: 220px;
+        font-weight: 500;
       }
 
       .message-entry {
         animation: messageIn 0.3s ease-out;
-        font-size: 10px;
+        font-size: 9px;
         line-height: 1.5;
       }
 
@@ -193,7 +256,7 @@
       .message-entry strong { color: #E8A44A; }
       .message-entry a { color: #E8A44A; }
       .message-entry h1, .message-entry h2, .message-entry h3,
-      .message-entry h4 { color: #E8A44A; margin: 2px 0; font-size: 11px; }
+      .message-entry h4 { color: #E8A44A; margin: 2px 0; font-size: 10px; }
 
       @keyframes messageIn {
         from { opacity: 0; transform: translateY(6px); }
@@ -210,18 +273,7 @@
     <div class="overlay">
       <div class="titlebar" data-tauri-drag-region>
         <div class="titlebar-left">
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M8 0L9.2 5.8L14.9 4.1L11.2 8.6L14.9 11.9L9.2 10.2L8 16L6.8 10.2L1.1 11.9L4.8 8.6L1.1 4.1L6.8 5.8Z"
-              fill="#E8A44A"
-            />
-          </svg>
+          <img src="src/assets/star_freely.png" width="48" height="48" alt="" />
           <span>freely</span>
         </div>
         <div class="titlebar-right">
@@ -231,14 +283,22 @@
       </div>
 
       <div class="body">
-        <div class="assistant-label">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 0L9.2 5.8L14.9 4.1L11.2 8.6L14.9 11.9L9.2 10.2L8 16L6.8 10.2L1.1 11.9L4.8 8.6L1.1 4.1L6.8 5.8Z" fill="#E8A44A"/>
-          </svg>
-          <span>Assistant</span>
+        <div id="messages" class="messages">
+          <div class="empty-state" id="emptyState">
+            <img src="src/assets/audio_orange.png" alt="" />
+            <p class="title">Waiting for audio...</p>
+            <p class="sub">Please check that your device audio is currently active</p>
+          </div>
         </div>
-
-        <div id="messages" class="messages"></div>
+      </div>
+      <div class="footer">
+        <button class="copy-btn" id="copyBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy
+        </button>
       </div>
       <div class="resize-handle"></div>
     </div>
@@ -277,6 +337,7 @@
 
         const messages = document.getElementById("messages");
         if (!messages) return;
+        const emptyState = document.getElementById("emptyState");
 
         let currentMsg = "";
         let currentEntry = null;
@@ -293,6 +354,7 @@
           currentMsg = "";
           currentEntry = document.createElement("div");
           currentEntry.className = "message-entry";
+          if (emptyState && emptyState.parentNode) emptyState.remove();
           messages.appendChild(currentEntry);
         }
 
@@ -302,13 +364,6 @@
           currentMsg = "";
           currentEntry = null;
         }
-
-        setTimeout(() => {
-          currentMsg = "**Markdown test:** `inline code`\n\n```\ncode block\n```\n\n- list item\n\n*italic*";
-          startMessage();
-          renderMessage();
-          finishMessage();
-        }, 2000);
 
         const eventSource = new EventSource("http://localhost:3001/events");
 
@@ -330,11 +385,35 @@
         };
 
         eventSource.onerror = () => {
-          currentMsg = "[Connection lost]";
-          startMessage();
-          renderMessage();
-          finishMessage();
+          if (currentEntry) {
+            currentMsg = "[Connection lost]";
+            startMessage();
+            renderMessage();
+            finishMessage();
+          }
         };
+
+        const copyBtn = document.getElementById("copyBtn");
+        if (copyBtn) {
+          copyBtn.addEventListener("click", async () => {
+            const entries = messages.querySelectorAll(".message-entry");
+            if (!entries.length) return;
+            const text = Array.from(entries).map(e => e.textContent).join("\n\n");
+            try {
+              await navigator.clipboard.writeText(text);
+              const orig = copyBtn.innerHTML;
+              copyBtn.classList.add("copied");
+              copyBtn.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Copied
+              `;
+              setTimeout(() => {
+                copyBtn.classList.remove("copied");
+                copyBtn.innerHTML = orig;
+              }, 2000);
+            } catch {}
+          });
+        }
       });
     </script>
   </body>
