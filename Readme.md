@@ -20,8 +20,15 @@
 
 ## Demo
 
-<!-- TODO: Add a GIF or screenshot showing both windows (overlay + transcript panel) in action -->
-<!-- This is the single highest-impact addition you can make before launch -->
+<p align="center">
+  <img src="./public/freelyShowcase.png" alt="Freely Showcase" width="80%">
+</p>
+
+<p align="center">
+  <img src="./public/freely%20youtube.png" alt="Freely YouTube" width="48%">
+  &nbsp;
+  <img src="./public/freely_leet%20code_screenshot.png" alt="Freely LeetCode" width="48%">
+</p>
 
 ---
 
