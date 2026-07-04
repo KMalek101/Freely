@@ -123,23 +123,9 @@
       flex-shrink: 0;
     }
 
-    .bars {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      height: 32px;
-    }
-
-    .bar {
-      width: 3px;
-      background: #E8A44A;
-      border-radius: 2px;
-      animation: wave 1.1s ease-in-out infinite;
-    }
-
-    @keyframes wave {
-      0%, 100% { transform: scaleY(0.35); }
-      50%       { transform: scaleY(1); }
+    #waveform {
+      display: block;
+      flex-shrink: 0;
     }
 
     .listening-label {
@@ -252,21 +238,7 @@
       <!-- Waveform -->
       <div class="waveform-row">
         <div class="dot"></div>
-        <div class="bars">
-          <div class="bar" style="height:14px; animation-delay:0.00s"></div>
-          <div class="bar" style="height:22px; animation-delay:0.10s"></div>
-          <div class="bar" style="height:28px; animation-delay:0.20s"></div>
-          <div class="bar" style="height:20px; animation-delay:0.15s"></div>
-          <div class="bar" style="height:30px; animation-delay:0.30s"></div>
-          <div class="bar" style="height:24px; animation-delay:0.05s"></div>
-          <div class="bar" style="height:18px; animation-delay:0.25s"></div>
-          <div class="bar" style="height:26px; animation-delay:0.35s"></div>
-          <div class="bar" style="height:14px; animation-delay:0.10s"></div>
-          <div class="bar" style="height:10px; animation-delay:0.20s"></div>
-          <div class="bar" style="height:20px; animation-delay:0.40s"></div>
-          <div class="bar" style="height:12px; animation-delay:0.15s"></div>
-          <div class="bar" style="height:8px;  animation-delay:0.05s"></div>
-        </div>
+        <canvas id="waveform" width="75" height="32"></canvas>
       </div>
 
       <p class="listening-label">Listening...</p>
@@ -281,66 +253,6 @@
     <div class="resize-handle"></div>
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const tauri = window.__TAURI__;
-      if (!tauri) return;
-      const win = tauri.window.getCurrentWindow();
-
-      document.getElementById("panelMinBtn")?.addEventListener("click", () => win.minimize());
-      document.getElementById("panelCloseBtn")?.addEventListener("click", () => win.close());
-
-      const handle = document.querySelector(".resize-handle");
-      if (handle) {
-        let dragging = false, sx, sy, sw, sh;
-        handle.addEventListener("mousedown", (e) => {
-          dragging = true;
-          sx = e.clientX;
-          sy = e.clientY;
-          Promise.all([win.outerSize(), win.outerPosition()]).then(([size]) => {
-            sw = size.width;
-            sh = size.height;
-          });
-        });
-        document.addEventListener("mousemove", (e) => {
-          if (!dragging) return;
-          const w = Math.max(200, sw + e.clientX - sx);
-          const h = Math.max(200, sh + e.clientY - sy);
-          win.setSize(new tauri.window.PhysicalSize(w, h));
-        });
-        document.addEventListener("mouseup", () => { dragging = false; });
-      }
-
-      const transcripts = document.getElementById("transcripts");
-      if (!transcripts) return;
-
-      function appendTranscript(content) {
-        const entry = document.createElement("div");
-        entry.className = "transcript-entry";
-        entry.textContent = content;
-        transcripts.appendChild(entry);
-        transcripts.scrollTop = transcripts.scrollHeight;
-      }
-
-      const eventSource = new EventSource("http://localhost:3001/events");
-
-      eventSource.onmessage = (event) => {
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch {
-          return;
-        }
-
-        if (data.type === "transcript") {
-          appendTranscript(data.content);
-        }
-      };
-
-      eventSource.onerror = () => {
-        appendTranscript("[Connection lost]");
-      };
-    });
-  </script>
+  <script type="module" src="src/panel.ts"></script>
 </body>
 </html>
