@@ -14,6 +14,12 @@ const PLATFORM_MAP: Record<string, string | undefined> = {
   "darwin-arm64": "whisper-darwin-arm64",
 };
 
+const HELPER_PLATFORM_MAP: Record<string, string | undefined> = {
+  "linux-x64": "audio-capture-helper-linux-x64",
+  "darwin-x64": "audio-capture-helper-darwin-x64",
+  "darwin-arm64": "audio-capture-helper-darwin-arm64",
+};
+
 function getPlatformKey(): string {
   return `${os.platform()}-${os.arch()}`;
 }
@@ -127,6 +133,26 @@ export async function ensureBinaries(): Promise<void> {
     } catch (e) {
       console.warn(`[install] Could not download overlay binary: ${e instanceof Error ? e.message : e}`);
       console.warn("[install] Overlay features will be unavailable.");
+    }
+  }
+
+  // audio-capture-helper binary
+  const helperName = HELPER_PLATFORM_MAP[getPlatformKey()];
+  const helperPath = path.join(getBinDir(), "audio-capture-helper");
+  if (fs.existsSync(helperPath)) {
+    console.log("[install] audio-capture-helper already present, skipping.");
+  } else if (!helperName) {
+    console.warn(`[install] No audio-capture-helper binary for ${getPlatformKey()}. Audio capture unavailable.`);
+  } else {
+    const helperUrl = `https://github.com/${REPO}/releases/download/${RELEASE_TAG}/${helperName}`;
+    console.log("[install] Downloading audio-capture-helper...");
+    try {
+      await downloadFile(helperUrl, helperPath, "audio-capture-helper");
+      fs.chmodSync(helperPath, 0o755);
+      console.log("[install] audio-capture-helper ready.");
+    } catch (e) {
+      console.warn(`[install] Could not download audio-capture-helper: ${e instanceof Error ? e.message : e}`);
+      console.warn("[install] Audio capture will be unavailable.");
     }
   }
 

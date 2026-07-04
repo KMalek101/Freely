@@ -4,22 +4,13 @@ import { readFile } from "node:fs/promises";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { askAI } from "./ai.js";
 import { eventBus } from "./daemon/sseServer.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
 import { RmsVad } from "./vad.js";
 import { loadCvContext, buildSystemPrompt } from "./cv.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = path.resolve(__dirname, "../..");
-const HELPER_BINARY = path.join(
-  PROJECT_ROOT,
-  "audio-capture-helper",
-  "target",
-  "release",
-  "audio-capture-helper",
-);
+const HELPER_BINARY = path.join(os.homedir(), ".config", "freely", "bin", "audio-capture-helper");
 
 const WHISPER_CLI = path.join(os.homedir(), ".config", "freely", "bin", "whisper");
 const WHISPER_MODEL = path.join(os.homedir(), ".config", "freely", "models", "ggml-tiny.en.bin");
@@ -79,7 +70,10 @@ function transcribeFile(filePath: string): void {
     (err, stdout) => {
       fs.unlink(filePath, () => {});
 
-      if (err) return;
+      if (err) {
+        console.error("[whisper] failed:", err.message);
+        return;
+      }
       const text = stdout.trim();
       if (!text) return;
 
