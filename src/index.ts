@@ -12,6 +12,7 @@ import { startInteractiveLoop } from "./interactive/loop.js";
 import { startDaemon } from "./services/daemon/server.js";
 import { takeScreenshot } from "./services/screenshot.js";
 import { listAudioSources } from "./services/config.js";
+import { ensureBinaries } from "./services/install.js";
 import type { AudioSource } from "./services/config.js";
 
 const program = new Command();
@@ -249,6 +250,7 @@ program.command("daemon").action(async () => {
   await ensureDevice();
   await ensureProvider();
   await ensureCv();
+  await ensureBinaries();
   writePid(process.pid);
   ensureOverlay();
   await startDaemon();
@@ -363,6 +365,7 @@ if (process.argv.length === 2) {
   await ensureDevice();
   await ensureProvider();
   await ensureCv();
+  await ensureBinaries();
   ensureDaemon();
   ensureOverlay();
   await startInteractiveLoop();
