@@ -1,11 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import pdfParse from "pdf-parse-debugging-disabled";
 
-const CV_TXT = join(homedir(), ".config", "freely", "cv.txt");
-const CV_PDF = join(homedir(), ".config", "freely", "cv.pdf");
+import { CV_PDF_PATH as CV_PDF, CV_TXT_PATH as CV_TXT } from "./paths.js";
 
 export async function loadCvContext(): Promise<string> {
   if (existsSync(CV_TXT)) {

@@ -1,7 +1,5 @@
 import net from "net";
 import fs from "fs";
-import os from "os";
-import path from "path";
 import { takeScreenshot } from "../screenshot.js";
 import { analyzeScreenshot, askAI } from "../ai.js";
 
@@ -10,10 +8,7 @@ import { startAudioCapture, stopAudioCapture } from "../audio-capture.js";
 import { loadCvContext, buildSystemPrompt } from "../cv.js";
 import { SYSTEM_PROMPT } from "../prompts.js";
 
-const SOCKET_PATH =
-  process.platform === "win32"
-    ? "\\\\.\\pipe\\freely"
-    : path.join(os.tmpdir(), "freely.sock");
+import { IS_WINDOWS, SOCKET_PATH } from "../paths.js";
 
 export async function startDaemon() {
   startSseServer();
@@ -28,7 +23,9 @@ export async function startDaemon() {
     process.exit(0);
   });
 
-  if (fs.existsSync(SOCKET_PATH)) {
+  // A stale unix socket has to be removed before rebinding; a named pipe is
+  // not a filesystem entry and unlinking it fails.
+  if (!IS_WINDOWS && fs.existsSync(SOCKET_PATH)) {
     fs.unlinkSync(SOCKET_PATH);
   }
 

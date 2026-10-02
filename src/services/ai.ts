@@ -3,11 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import * as fs from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { getSystemPrompt } from "./prompts.js";
-
-const CONFIG_PATH = join(homedir(), ".config", "freely", "config.json");
+import { CONFIG_PATH } from "./paths.js";
 
 async function getConfig() {
   let raw: string;

@@ -1,11 +1,8 @@
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
 
-const CONFIG_DIR = join(homedir(), ".config", "freely");
-const CONFIG_PATH = join(CONFIG_DIR, "config.json");
+import { CONFIG_DIR, CONFIG_PATH, HELPER_BINARY, IS_WINDOWS } from "./paths.js";
 
 export type Provider = "gemini" | "anthropic" | "openai";
 
@@ -30,6 +27,8 @@ export function getConfigDir(): string {
 }
 
 export function listAudioSources(): AudioSource[] {
+  if (IS_WINDOWS) return listWindowsAudioSources();
+
   const stdout = execFileSync("pactl", ["list", "sources", "short"], {
     timeout: 5000,
     encoding: "utf-8",
@@ -42,6 +41,16 @@ export function listAudioSources(): AudioSource[] {
       const parts = line.split("\t");
       return { name: parts[1] ?? "", state: parts[3] ?? "" };
     });
+}
+
+// Let the helper enumerate: it is the process that has to open the device
+// later, so the names it prints are the ones WASAPI will actually accept.
+function listWindowsAudioSources(): AudioSource[] {
+  const stdout = execFileSync(HELPER_BINARY, ["--list-devices"], {
+    timeout: 5000,
+    encoding: "utf-8",
+  });
+  return JSON.parse(stdout) as AudioSource[];
 }
 
 export async function loadConfig(): Promise<AppConfig> {
@@ -137,7 +146,11 @@ export async function interactiveConfig(): Promise<void> {
         try {
           devices = listAudioSources();
         } catch {
-          console.error("  Could not list audio sources. Is PipeWire/PulseAudio running?\n");
+          console.error(
+            IS_WINDOWS
+              ? "  Could not list audio devices. Is the audio-capture-helper installed?\n"
+              : "  Could not list audio sources. Is PipeWire/PulseAudio running?\n",
+          );
           break;
         }
         if (devices.length === 0) {
@@ -162,7 +175,7 @@ export async function interactiveConfig(): Promise<void> {
 }
 
 export async function editConfigInEditor(): Promise<void> {
-  const editor = process.env.EDITOR || "vim";
+  const editor = process.env.EDITOR || (IS_WINDOWS ? "notepad" : "vim");
 
   if (!existsSync(CONFIG_DIR)) {
     await mkdir(CONFIG_DIR, { recursive: true });
@@ -172,7 +185,7 @@ export async function editConfigInEditor(): Promise<void> {
   }
 
   return new Promise<void>((resolve, reject) => {
-    const child = spawn(editor, [CONFIG_PATH], {
+    const child = spawn(editor, [`"${CONFIG_PATH}"`], {
       stdio: "inherit",
       shell: true,
     });

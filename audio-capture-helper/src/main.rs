@@ -1,118 +1,95 @@
-use std::io::{self, Read, Write};
-use std::os::unix::io::AsRawFd;
-use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::io::{self, Write};
+
+#[cfg(unix)]
+#[path = "unix.rs"]
+mod backend;
+
+#[cfg(windows)]
+#[path = "windows.rs"]
+mod backend;
+
+// Whisper wants 16 kHz mono PCM, so the helper always emits that and lets the
+// platform audio stack do the conversion.
+pub const SAMPLE_RATE: usize = 16000;
+pub const CHANNELS: usize = 1;
+
+/// One selectable input, as printed by `--list-devices`. `name` is the exact
+/// string that has to be passed back in to capture from it.
+pub struct AudioDevice {
+    pub name: String,
+    pub state: String,
+}
 
 fn main() -> io::Result<()> {
-    let dev = std::env::args().nth(1).unwrap_or_else(|| {
+    let arg = std::env::args().nth(1).unwrap_or_else(|| {
         eprintln!("Usage: audio-capture-helper <device-name>");
-        eprintln!("Run `pactl list sources short` to list available devices.");
+        eprintln!("       audio-capture-helper --list-devices");
         std::process::exit(1);
     });
 
-    let running = Arc::new(AtomicBool::new(true));
-    let cmd = "parec";
-    let args = [
-        format!("--device={dev}"),
-        "--format=s16le".into(),
-        "--rate=16000".into(),
-        "--channels=1".into(),
-        "--raw".into(),
-    ];
-
-    eprintln!("spawning: {cmd} {}", args.join(" "));
-
-    let mut child = Command::new(cmd)
-        .args(&args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .map_err(|e| {
-            if e.kind() == io::ErrorKind::NotFound {
-                io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "parec not found — install pulseaudio-utils",
-                )
-            } else {
-                e
-            }
-        })?;
-
-    let mut parec_out = child.stdout.take().unwrap();
-
-    setup_signal_handler(Arc::clone(&running));
-
-    // Write JSON header, then raw PCM
-    let header = b"{\"sample_rate\":16000,\"channels\":1,\"sample_format\":\"S16LE\"}\n";
-    io::stdout().write_all(header)?;
-    io::stdout().flush()?;
-
-    let mut buf = [0u8; 8192];
-
-    while running.load(Ordering::Relaxed) {
-        let n = match read_with_timeout(&mut parec_out, &mut buf, Duration::from_millis(100))? {
-            Some(n) if n == 0 => break,
-            Some(n) => n,
-            None => continue,
-        };
-
-        io::stdout().write_all(&buf[..n])?;
-        io::stdout().flush()?;
+    if arg == "--list-devices" {
+        println!("{}", to_json(&backend::list_devices()?));
+        return Ok(());
     }
 
-    let _ = child.kill();
-    child.wait()?;
-    Ok(())
+    backend::capture(&arg)
 }
 
-fn read_with_timeout(
-    reader: &mut (impl Read + AsRawFd),
-    buf: &mut [u8],
-    timeout: Duration,
-) -> io::Result<Option<usize>> {
-    let fd = reader.as_raw_fd();
+/// Written once on stdout, before the raw PCM stream starts.
+pub fn write_pcm_header() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    writeln!(
+        stdout,
+        "{{\"sample_rate\":{SAMPLE_RATE},\"channels\":{CHANNELS},\"sample_format\":\"S16LE\"}}"
+    )?;
+    stdout.flush()
+}
 
-    loop {
-        let mut fds = [libc::pollfd {
-            fd,
-            events: libc::POLLIN,
-            revents: 0,
-        }];
+// Two string fields are not worth a serde dependency.
+fn to_json(devices: &[AudioDevice]) -> String {
+    let items: Vec<String> = devices
+        .iter()
+        .map(|d| {
+            format!(
+                "{{\"name\":\"{}\",\"state\":\"{}\"}}",
+                escape(&d.name),
+                escape(&d.state)
+            )
+        })
+        .collect();
+    format!("[{}]", items.join(","))
+}
 
-        let ret = unsafe { libc::poll(fds.as_mut_ptr(), 1, timeout.as_millis() as i32) };
-        if ret < 0 {
-            let err = io::Error::last_os_error();
-            if err.kind() == io::ErrorKind::Interrupted {
-                continue;
-            }
-            return Err(err);
-        }
-        if ret == 0 {
-            return Ok(None);
-        }
+// Device names are plain text, so quotes and backslashes are the only things
+// that can break the output.
+fn escape(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('"', "\\\"")
+}
 
-        match reader.read(buf) {
-            Ok(0) => return Ok(Some(0)),
-            Ok(n) => return Ok(Some(n)),
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => continue,
-            Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
-            Err(e) => return Err(e),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn device_json_matches_what_the_cli_parses() {
+        let devices = vec![
+            AudioDevice {
+                name: "Speakers (Realtek(R) Audio) (loopback)".to_string(),
+                state: "Active".to_string(),
+            },
+            AudioDevice {
+                name: "Microphone \"Pro\"".to_string(),
+                state: "Active".to_string(),
+            },
+        ];
+        assert_eq!(
+            to_json(&devices),
+            r#"[{"name":"Speakers (Realtek(R) Audio) (loopback)","state":"Active"},{"name":"Microphone \"Pro\"","state":"Active"}]"#
+        );
     }
-}
 
-fn setup_signal_handler(running: Arc<AtomicBool>) {
-    std::thread::spawn(move || {
-        let mut signals = signal_hook::iterator::Signals::new(&[
-            signal_hook::consts::SIGTERM,
-            signal_hook::consts::SIGINT,
-        ])
-        .expect("failed to register signal handler");
-        for _ in signals.forever() {
-            running.store(false, Ordering::Relaxed);
-            break;
-        }
-    });
+    #[test]
+    fn empty_device_list_is_still_valid_json() {
+        assert_eq!(to_json(&[]), "[]");
+    }
 }

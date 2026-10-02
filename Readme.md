@@ -74,8 +74,14 @@ npm install -g freely
 - `node` >= 18
 
 **Windows:**
-- Supported but less tested. The overlay uses Webview2 (bundled with Windows 10+).
-- Ensure `npm` and `node` >= 18 are installed.
+- Windows 10 1803+ (`SetWindowDisplayAffinity` is what keeps the overlay out of screen shares)
+- Webview2, bundled with Windows 10+
+- Windows PowerShell, used for `/screenshot` — no extra install
+- `node` >= 18
+
+  Audio capture goes through WASAPI, so there is nothing to install for it.
+  Playback devices are listed as `… (loopback)` and record what the machine is
+  playing, which is usually what you want for a call.
 
 **macOS:**
 - Not yet implemented. Contributions welcome.
@@ -86,7 +92,8 @@ After installation, build the overlay:
 cd overlay && npm run tauri build
 ```
 
-The built AppImage (`freely-x86_64.AppImage`) will be placed in `bin/`.
+On Linux this produces `freely-x86_64.AppImage`; on Windows, `freely.exe`. Freely
+looks for it in its own `bin/` directory (see below).
 
 ---
 
@@ -129,7 +136,8 @@ The daemon listens for speech. When someone speaks, you'll see the live transcri
 
 ## Configuration
 
-Config is stored at `~/.config/freely/config.json`:
+Config is stored at `~/.config/freely/config.json`, or
+`%APPDATA%\freely\config.json` on Windows:
 
 ```json
 {
@@ -149,7 +157,7 @@ Config is stored at `~/.config/freely/config.json`:
 
 ### Background Context (CV)
 
-Drop a `cv.txt` or `cv.pdf` in `~/.config/freely/` and the AI will inject that context into every response — useful for interview prep, meeting context, or role-specific assistance.
+Drop a `cv.txt` or `cv.pdf` in the config directory above and the AI will inject that context into every response — useful for interview prep, meeting context, or role-specific assistance.
 
 ---
 
@@ -158,7 +166,7 @@ Drop a `cv.txt` or `cv.pdf` in `~/.config/freely/` and the AI will inject that c
 | Platform | Status | Notes |
 |----------|--------|-------|
 | **Linux** | ✅ Primary | Tested on Arch (KDE) with PulseAudio/PipeWire |
-| **Windows** | 🟡 Beta | Capture exclusion works; audio capture and overlay need more testing |
+| **Windows** | 🟡 Beta | WASAPI capture (including loopback), PowerShell screenshots, capture exclusion |
 | **macOS** | ❌ Planned |  Contributions welcome |
 
 ---
@@ -169,7 +177,7 @@ Freely is designed to be **private by default**. Here's exactly what happens wit
 
 | Stage | Where it runs | Data leaves your machine? |
 |-------|---------------|--------------------------|
-| Audio capture | Local (Rust binary via `parec`) | ❌ No |
+| Audio capture | Local (Rust binary via `parec` / WASAPI) | ❌ No |
 | Voice Activity Detection | Local (Node.js, RMS-based VAD) | ❌ No |
 | Speech-to-Text | Local (Whisper CLI) | ❌ No |
 | LLM inference | Cloud (Gemini / Claude / OpenAI API) | ✅ Yes — transcribed text only |
@@ -188,7 +196,7 @@ You can further reduce data sharing by running a local LLM. Freely's provider ab
 ![Freely Architecture](./public/freely_archi.png)
 - **Daemon** — Node.js background process. Manages audio capture (Rust helper), VAD, Whisper transcription, AI provider calls, and an SSE server on port 3001.
 - **Overlay** — Tauri v2 app (Rust + vanilla TypeScript). Two transparent, always-on-top windows: a small floating bar and a transcript panel. Connects to the daemon's SSE stream.
-- **Audio Capture Helper** — Rust binary that captures audio via `parec`, performs silence detection, and streams PCM data to the daemon.
+- **Audio Capture Helper** — Rust binary that streams 16 kHz mono PCM to the daemon: `parec` on Linux, WASAPI on Windows. `--list-devices` prints the selectable inputs as JSON.
 - **Interactive CLI** — Ink-based React terminal UI for direct chat with the AI.
 
 ---

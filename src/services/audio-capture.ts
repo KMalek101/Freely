@@ -9,11 +9,13 @@ import { eventBus } from "./daemon/sseServer.js";
 import { SYSTEM_PROMPT } from "./prompts.js";
 import { RmsVad } from "./vad.js";
 import { loadCvContext, buildSystemPrompt } from "./cv.js";
-
-const HELPER_BINARY = path.join(os.homedir(), ".config", "freely", "bin", "audio-capture-helper");
-
-const WHISPER_CLI = path.join(os.homedir(), ".config", "freely", "bin", "whisper");
-const WHISPER_MODEL = path.join(os.homedir(), ".config", "freely", "models", "ggml-tiny.en.bin");
+import {
+  CONFIG_DIR,
+  CONFIG_PATH,
+  HELPER_BINARY,
+  WHISPER_CLI,
+  WHISPER_MODEL,
+} from "./paths.js";
 
 const SAMPLE_RATE = 16000;
 const CHANNELS = 1;
@@ -115,7 +117,7 @@ function flushSpeechSegment(): void {
   }
 
   const timestamp = Date.now();
-  const filePath = `/tmp/freely-audio-${timestamp}.wav`;
+  const filePath = path.join(os.tmpdir(), `freely-audio-${timestamp}.wav`);
   writeWav(speechBuffer, filePath);
   console.log(
     `[vad] wrote speech segment (${speechBuffer.length} bytes) -> ${filePath}`,
@@ -215,15 +217,9 @@ export async function startAudioCapture(): Promise<void> {
     return;
   }
 
-  const configPath = path.join(
-    os.homedir(),
-    ".config",
-    "freely",
-    "config.json",
-  );
   let device: string;
   try {
-    const config = JSON.parse(await readFile(configPath, "utf-8"));
+    const config = JSON.parse(await readFile(CONFIG_PATH, "utf-8"));
     device = config.device;
     if (!device) throw new Error();
   } catch {
@@ -237,7 +233,7 @@ export async function startAudioCapture(): Promise<void> {
     console.log("[cv] loaded background context");
   } else {
     console.log(
-      "[cv] No cv.txt or cv.pdf found in ~/.config/freely/.\n      Drop one there to inject your background into the AI context.",
+      `[cv] No cv.txt or cv.pdf found in ${CONFIG_DIR}.\n      Drop one there to inject your background into the AI context.`,
     );
   }
 

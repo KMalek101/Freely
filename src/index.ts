@@ -5,8 +5,7 @@ import { Command } from "commander";
 import { spawn } from "child_process";
 import { copyFile, mkdir, readFile, writeFile } from "fs/promises";
 import fs from "fs";
-import { homedir } from "os";
-import { join, resolve, extname } from "path";
+import { resolve, extname } from "path";
 
 import { startInteractiveLoop } from "./interactive/loop.js";
 import { startDaemon } from "./services/daemon/server.js";
@@ -14,17 +13,25 @@ import { takeScreenshot } from "./services/screenshot.js";
 import { listAudioSources } from "./services/config.js";
 import { ensureBinaries } from "./services/install.js";
 import type { AudioSource } from "./services/config.js";
+import {
+  CONFIG_DIR,
+  CONFIG_PATH,
+  CV_PDF_PATH,
+  CV_TXT_PATH,
+  DAEMON_PID_FILE,
+  IS_WINDOWS,
+  OVERLAY_BINARY,
+  OVERLAY_PID_FILE,
+  SOCKET_PATH,
+} from "./services/paths.js";
 
 const program = new Command();
 
 program.name("freely").description("AI screen assistant");
 
 async function ensureDevice() {
-  const configDir = join(homedir(), ".config", "freely");
-  const configPath = join(configDir, "config.json");
-
   try {
-    const existing = JSON.parse(await readFile(configPath, "utf-8"));
+    const existing = JSON.parse(await readFile(CONFIG_PATH, "utf-8"));
     if (existing.device) return;
   } catch {}
 
@@ -37,7 +44,11 @@ async function ensureDevice() {
   try {
     devices = listAudioSources();
   } catch {
-    console.error("Could not list audio sources. Is PipeWire/PulseAudio running?");
+    console.error(
+      IS_WINDOWS
+        ? "Could not list audio devices. Is the audio-capture-helper installed?"
+        : "Could not list audio sources. Is PipeWire/PulseAudio running?",
+    );
     process.exit(1);
   }
 
@@ -60,24 +71,20 @@ async function ensureDevice() {
     process.exit(1);
   }
 
-  await mkdir(configDir, { recursive: true });
+  await mkdir(CONFIG_DIR, { recursive: true });
   let existing: Record<string, unknown> = {};
   try {
-    existing = JSON.parse(await readFile(configPath, "utf-8"));
+    existing = JSON.parse(await readFile(CONFIG_PATH, "utf-8"));
   } catch {}
   await writeFile(
-    configPath,
+    CONFIG_PATH,
     JSON.stringify({ ...existing, device }, null, 2) + "\n",
   );
-  console.log(`Device saved to ${configPath}`);
+  console.log(`Device saved to ${CONFIG_PATH}`);
 }
 
 async function ensureCv() {
-  const configDir = join(homedir(), ".config", "freely");
-  const cvTxtPath = join(configDir, "cv.txt");
-  const cvPdfPath = join(configDir, "cv.pdf");
-
-  if (fs.existsSync(cvTxtPath) || fs.existsSync(cvPdfPath)) return;
+  if (fs.existsSync(CV_TXT_PATH) || fs.existsSync(CV_PDF_PATH)) return;
   if (!process.stdin.isTTY) return;
 
   const { text } = await import("@clack/prompts");
@@ -88,7 +95,7 @@ async function ensureCv() {
 
   if (!input || typeof input !== "string" || !input.trim()) {
     console.log(
-      "[cv] Skipped — drop cv.txt or cv.pdf in ~/.config/freely/ anytime to inject your background into the AI context.",
+      `[cv] Skipped — drop cv.txt or cv.pdf in ${CONFIG_DIR} anytime to inject your background into the AI context.`,
     );
     return;
   }
@@ -106,18 +113,14 @@ async function ensureCv() {
     return;
   }
 
-  const dest = ext === ".txt" ? cvTxtPath : cvPdfPath;
+  const dest = ext === ".txt" ? CV_TXT_PATH : CV_PDF_PATH;
   await copyFile(resolvedPath, dest);
   console.log(`[cv] Saved to ${dest}`);
 }
 
-const OVERLAY_PID_FILE = join(homedir(), ".config", "freely", "overlay.pid");
-const CONFIG_DIR = join(homedir(), ".config", "freely");
-const PID_FILE = join(CONFIG_DIR, "daemon.pid");
-
 function readPid(): number | null {
   try {
-    const pid = parseInt(fs.readFileSync(PID_FILE, "utf-8").trim(), 10);
+    const pid = parseInt(fs.readFileSync(DAEMON_PID_FILE, "utf-8").trim(), 10);
     return isNaN(pid) ? null : pid;
   } catch {
     return null;
@@ -126,12 +129,12 @@ function readPid(): number | null {
 
 function writePid(pid: number): void {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  fs.writeFileSync(PID_FILE, String(pid));
+  fs.writeFileSync(DAEMON_PID_FILE, String(pid));
 }
 
 function deletePid(): void {
   try {
-    fs.unlinkSync(PID_FILE);
+    fs.unlinkSync(DAEMON_PID_FILE);
   } catch {}
 }
 
@@ -170,25 +173,20 @@ function ensureOverlay(): void {
     if (!isNaN(overlayPid) && isProcessAlive(overlayPid)) return;
   } catch {}
 
-  const appImage = join(homedir(), ".config", "freely", "bin", "freely-overlay.AppImage");
-
-  if (!fs.existsSync(appImage)) {
-    console.warn("[overlay] Binary not found at " + appImage);
+  if (!fs.existsSync(OVERLAY_BINARY)) {
+    console.warn("[overlay] Binary not found at " + OVERLAY_BINARY);
     return;
   }
 
-  const child = spawn(appImage, [], { detached: true, stdio: "ignore" });
+  const child = spawn(OVERLAY_BINARY, [], { detached: true, stdio: "ignore" });
   child.unref();
   fs.writeFileSync(OVERLAY_PID_FILE, String(child.pid!));
 }
 
 async function ensureProvider() {
-  const configDir = join(homedir(), ".config", "freely");
-  const configPath = join(configDir, "config.json");
-
   let existing: Record<string, unknown> = {};
   try {
-    existing = JSON.parse(await readFile(configPath, "utf-8"));
+    existing = JSON.parse(await readFile(CONFIG_PATH, "utf-8"));
   } catch {}
 
   if (existing.provider && existing.apiKey && existing.model) return;
@@ -240,17 +238,18 @@ async function ensureProvider() {
   }
 
   await writeFile(
-    configPath,
+    CONFIG_PATH,
     JSON.stringify({ ...existing, provider, apiKey, model }, null, 2) + "\n",
   );
-  console.log(`AI provider saved to ${configPath}`);
+  console.log(`AI provider saved to ${CONFIG_PATH}`);
 }
 
 program.command("daemon").action(async () => {
+  // Binaries first: on Windows the device list comes from the helper.
+  await ensureBinaries();
   await ensureDevice();
   await ensureProvider();
   await ensureCv();
-  await ensureBinaries();
   writePid(process.pid);
   ensureOverlay();
   await startDaemon();
@@ -279,12 +278,6 @@ program.command("stop").description("Stop the background daemon").action(() => {
 
 program.command("trigger <action> [args...]").action(async (action: string, args: string[]) => {
   const net = await import("net");
-  const os = await import("os");
-  const path = await import("path");
-  
-  const SOCKET_PATH = process.platform === "win32" 
-    ? "\\\\.\\pipe\\freely" 
-    : path.join(os.tmpdir(), "freely.sock");
 
   const client = net.createConnection(SOCKET_PATH);
   client.on("connect", () => {
@@ -300,12 +293,6 @@ program.command("trigger <action> [args...]").action(async (action: string, args
 
 program.command("ask <question...>").action(async (question: string[]) => {
   const net = await import("net");
-  const os = await import("os");
-  const path = await import("path");
-  
-  const SOCKET_PATH = process.platform === "win32" 
-    ? "\\\\.\\pipe\\freely" 
-    : path.join(os.tmpdir(), "freely.sock");
 
   const client = net.createConnection(SOCKET_PATH);
   client.on("connect", () => {
@@ -317,12 +304,6 @@ program.command("ask <question...>").action(async (question: string[]) => {
 
 program.command("screenshot [question]").action(async (question?: string) => {
   const net = await import("net");
-  const os = await import("os");
-  const path = await import("path");
-  
-  const SOCKET_PATH = process.platform === "win32" 
-    ? "\\\\.\\pipe\\freely" 
-    : path.join(os.tmpdir(), "freely.sock");
 
   const client = net.createConnection(SOCKET_PATH);
   client.on("connect", () => {
@@ -345,7 +326,7 @@ configCmd
 
 configCmd
   .command("edit")
-  .description("Open config file in $EDITOR (or vim)")
+  .description("Open config file in $EDITOR (or notepad/vim)")
   .action(async () => {
     const { editConfigInEditor } = await import("./services/config.js");
     try {
@@ -362,10 +343,11 @@ configCmd.action(async () => {
 });
 
 if (process.argv.length === 2) {
+  // Binaries first: on Windows the device list comes from the helper.
+  await ensureBinaries();
   await ensureDevice();
   await ensureProvider();
   await ensureCv();
-  await ensureBinaries();
   ensureDaemon();
   ensureOverlay();
   await startInteractiveLoop();
